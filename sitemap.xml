@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Homepage -->
+  <url>
+    <loc>https://kalto-law.web.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Core pages -->
+  <url><loc>https://kalto-law.web.app/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/practice-areas</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://kalto-law.web.app/team</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kalto-law.web.app/case-results</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kalto-law.web.app/contact</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://kalto-law.web.app/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/faq</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Practice area pages -->
+  <url><loc>https://kalto-law.web.app/corporate-law</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/family-matters</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/real-estate-planning</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/labour-law</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/tax-law</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/commercial-matters</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/company-matters</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kalto-law.web.app/consumer-protection</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kalto-law.web.app/adr</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+
+  <!-- Tools & resources -->
+  <url><loc>https://kalto-law.web.app/fee-estimator</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kalto-law.web.app/legal-templates</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kalto-law.web.app/track-case</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Legal pages -->
+  <url><loc>https://kalto-law.web.app/privacy-policy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://kalto-law.web.app/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+
+</urlset>

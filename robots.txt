@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block private/app pages from indexing
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /portal
+Disallow: /portal.html
+Disallow: /pay.html
+Disallow: /login.html
+
+# Allow crawlers to find the sitemap
+Sitemap: https://kalto-law.web.app/sitemap.xml

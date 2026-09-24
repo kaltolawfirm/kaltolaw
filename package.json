@@ -1,0 +1,16 @@
+{
+  "name": "kalto_law",
+  "version": "1.0.0",
+  "description": "",
+  "main": "add_jspdf.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

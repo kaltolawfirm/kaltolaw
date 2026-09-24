@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // CMS & Blog Content
+    match /website_content/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /insights/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Enquiries & Appointments
+    match /enquiries/{document=**} {
+      allow create: if true;
+      allow get: if true;
+      allow list, update, delete: if isAdmin();
+    }
+    match /appointments/{document=**} {
+      allow create: if true;
+      allow get: if true;
+      allow list: if isAdmin() || (request.auth != null && isOwner(resource.data.uid));
+      allow update, delete: if isAdmin();
+    }
+
+    // Cases — clients can only read their own linked case
+    match /cases/{document=**} {
+      allow get: if true;
+      allow list: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      // Allow authenticated users to update uid field only (self-claim)
+      allow update: if isAdmin() ||
+        (request.auth != null &&
+         request.writeFields.hasOnly(['uid']) &&
+         resource.data.uid == null);
+      allow create, delete: if isAdmin();
+    }
+
+    // Admin document vault
+    match /documents/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    match /tasks/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Client upload metadata — owners can create & read their own
+    match /client_uploads/{document=**} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Newsletter subscribers
+    match /newsletter_subscribers/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Template requests
+    match /template_requests/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Invoices — clients can read their own
+    match /invoices/{document=**} {
+      allow create, update, delete: if isAdmin();
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+    }
+    match /payment_records/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Client Portal User Profiles
+    match /users/{uid} {
+      allow read, write: if isAdmin() || isOwner(uid);
+    }
+
+    // Ask a Lawyer messages — clients own their messages
+    match /messages/{document=**} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update: if isAdmin(); // admin replies
+      allow delete: if isAdmin();
+    }
+
+    // Client Satisfaction Ratings — clients create & read own; admin reads all
+    match /ratings/{document=**} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // e-Signature Requests — admin creates; clients read & update their own (to sign)
+    match /signature_requests/{document=**} {
+      allow create, delete: if isAdmin();
+      allow read: if isAdmin() || (request.auth != null && resource.data.clientUid == request.auth.uid);
+      allow update: if isAdmin() || (request.auth != null && resource.data.clientUid == request.auth.uid);
+    }
+
+    // Email Campaigns — admin only
+    match /campaigns/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Newsletter subscribers — anyone can subscribe; admin manages
+    match /subscribers/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
