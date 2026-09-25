@@ -1,1 +1,416 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title></title><style>*{margin:0;padding:0}html,body{background:#fff;width:100%;height:100%}</style></head><body></body></html>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SEO: Canonical + Meta -->
+    <link rel="canonical" href="https://kalto-law.web.app/login">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Kalto Law And Services Ltd">
+    <meta name="keywords" content="Kalto Law portal login, client dashboard, law firm portal">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kalto-law.web.app/login">
+    <meta property="og:title" content="Client Portal Login — Kalto Law Rwanda">
+    <meta property="og:description" content="Sign in to your Kalto Law client portal to manage cases, view invoices, book consultations, and communicate with our legal team.">
+    <meta property="og:image" content="https://kalto-law.web.app/images/CHOOSE.jpg">
+    <meta property="og:site_name" content="Kalto Law And Services Ltd">
+    <meta property="og:locale" content="en_RW">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Client Portal Login — Kalto Law Rwanda">
+    <meta name="twitter:description" content="Sign in to your Kalto Law client portal to manage cases, view invoices, book consultations, and communicate with our legal team.">
+    <meta name="twitter:image" content="https://kalto-law.web.app/images/CHOOSE.jpg">
+    <!-- Performance: Resource hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d1b35">
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+    <title>Client Portal Login — Kalto Law Rwanda</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background animated blobs */
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: floatBlob 8s ease-in-out infinite;
+        }
+        .bg-blob-1 { width: 400px; height: 400px; background: #c5a059; top: -100px; left: -100px; animation-delay: 0s; }
+        .bg-blob-2 { width: 300px; height: 300px; background: #1a2a4a; top: 60%; right: -80px; animation-delay: 3s; }
+        .bg-blob-3 { width: 250px; height: 250px; background: #c5a059; bottom: -80px; left: 30%; animation-delay: 5s; }
+
+        @keyframes floatBlob {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+
+        .auth-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            margin: 24px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-radius: 24px;
+            padding: 48px 40px;
+            animation: slideUp 0.6s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .auth-logo a {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .auth-logo i { color: #c5a059; font-size: 1.6rem; }
+        .auth-logo .text-gold { color: #c5a059; }
+        .auth-logo p {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Tab Switcher */
+        .auth-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 32px;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            border-radius: 9px;
+            transition: all 0.3s;
+            border: none;
+            background: none;
+        }
+        .auth-tab.active {
+            background: #c5a059;
+            color: #0a0e1a;
+        }
+
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+        .form-group input:focus { border-color: #c5a059; background: rgba(197,160,89,0.08); }
+        .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+
+        .btn-auth {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #c5a059, #a8853d);
+            color: #0a0e1a;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-auth:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(197,160,89,0.35); }
+        .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+        .divider span { font-size: 0.8rem; color: rgba(255,255,255,0.3); white-space: nowrap; }
+
+        .btn-google {
+            width: 100%;
+            padding: 13px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .btn-google:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+        .btn-google img { width: 20px; height: 20px; }
+
+        /* Claim case input */
+        .claim-case-box {
+            background: rgba(197,160,89,0.07);
+            border: 1px dashed rgba(197,160,89,0.3);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .claim-case-box label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #c5a059;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .claim-case-box p { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+        .claim-case-box input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(197,160,89,0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            font-family: monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .error-msg {
+            background: rgba(220,53,69,0.15);
+            border: 1px solid rgba(220,53,69,0.3);
+            color: #ff6b7a;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .success-msg {
+            background: rgba(18,183,106,0.12);
+            border: 1px solid rgba(18,183,106,0.3);
+            color: #6ee7b7;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.35);
+        }
+        .back-home a { color: #c5a059; text-decoration: none; font-weight: 600; }
+        .back-home a:hover { text-decoration: underline; }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.2);
+        }
+    </style>
+
+    <!-- Google Analytics GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', {
+        page_title: document.title,
+        page_location: window.location.href,
+        send_page_view: true
+      });
+      // Helper for custom events
+      window.gaEvent = function(action, category, label, value) {
+        gtag('event', action, { event_category: category, event_label: label, value: value });
+      };
+    </script>
+</head>
+<body>
+    <div class="bg-blob bg-blob-1"></div>
+    <div class="bg-blob bg-blob-2"></div>
+    <div class="bg-blob bg-blob-3"></div>
+
+    <div class="auth-card">
+        <div class="auth-logo">
+            <a href="index.html">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span>KALTO <span class="text-gold">LAW</span></span>
+            </a>
+            <p>Secure Client Portal</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tabLogin" onclick="showTab('login')">Sign In</button>
+            <button class="auth-tab" id="tabRegister" onclick="showTab('register')">Create Account</button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form active" id="loginForm">
+            <div class="error-msg" id="loginError"></div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="btn-auth" id="loginBtn" onclick="handleLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Sign In to Portal
+            </button>
+            <div class="divider"><span>or continue with</span></div>
+            <button class="btn-google" onclick="handleGoogleSignIn()">
+                <img src="https://www.google.com/favicon.ico" alt="Google"> Continue with Google
+            </button>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-form" id="registerForm">
+            <div class="error-msg" id="registerError"></div>
+            <div class="success-msg" id="registerSuccess"></div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="regName" placeholder="e.g. John Doe" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="regPhone" placeholder="+250 790 000 000">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="regPassword" placeholder="Min 8 characters" autocomplete="new-password">
+            </div>
+
+            <!-- Self-claim case code -->
+            <div class="claim-case-box">
+                <label><i class="fa-solid fa-folder-open" style="margin-right: 6px;"></i> Have an existing case?</label>
+                <p>If KALTO LAW has already registered a case for you, enter your Tracking Code below to link it automatically to your account.</p>
+                <input type="text" id="regTrackingCode" placeholder="e.g. KL-AB12-1234">
+            </div>
+
+            <button class="btn-auth" id="registerBtn" onclick="handleRegister()">
+                <i class="fa-solid fa-user-plus"></i> Create My Account
+            </button>
+            <div class="divider"><span>or continue with</span></div>
+            <button class="btn-google" onclick="handleGoogleSignIn()">
+                <img src="https://www.google.com/favicon.ico" alt="Google"> Continue with Google
+            </button>
+        </div>
+
+        <div class="back-home">
+            <a href="index.html"><i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i> Back to website</a>
+        </div>
+
+        <div class="auth-footer">
+            &copy; 2025 KALTO LAW AND SERVICES LTD &mdash; Secure & Encrypted
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/portal-auth.js"></script>
+    <script>
+        function showTab(tab) {
+            document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+            document.getElementById('registerForm').classList.toggle('active', tab === 'register');
+            document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+        }
+        // If already logged in, redirect to portal
+        window.addEventListener('portalReady', () => {
+            if (firebase.auth().currentUser) window.location.href = 'portal.html';
+        });
+    </script>
+</body>
+</html>

@@ -1,1 +1,1061 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title></title><style>*{margin:0;padding:0}html,body{background:#fff;width:100%;height:100%}</style></head><body></body></html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - KALTO LAW</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/style.css?v=1778353129677">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --admin-bg: #f4f7f9;
+            --admin-sidebar-bg: #101828;
+            --admin-card-bg: #ffffff;
+            --admin-accent: #c5a059;
+            /* Refined Gold */
+            --admin-text-main: #1d2939;
+            --admin-text-muted: #667085;
+            --admin-border: #eaecf0;
+            --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --admin-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--admin-bg);
+            color: var(--admin-text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- Login Screen (Supreme) --- */
+        .admin-login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--admin-sidebar-bg) 0%, #1c2a4e 100%);
+            padding: 24px;
+        }
+
+        .admin-card-login {
+            width: 100%;
+            max-width: 440px;
+            background: white;
+            padding: 48px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        /* --- Dashboard Layout --- */
+        .dashboard-layout {
+            display: none;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .admin-sidebar {
+            width: 280px;
+            background: var(--admin-sidebar-bg);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 32px 16px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .admin-main {
+            margin-left: 280px;
+            padding: 48px;
+            min-height: 100vh;
+        }
+
+        .sidebar-brand {
+            padding: 0 16px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 32px;
+        }
+
+        .sidebar-brand .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: var(--admin-transition);
+            font-weight: 500;
+        }
+
+        .sidebar-nav a i {
+            margin-right: 12px;
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--admin-accent);
+        }
+
+        /* --- Content Area Styling --- */
+        #pageTitle {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.25rem;
+            margin-bottom: 12px;
+            color: var(--admin-sidebar-bg);
+        }
+
+        .section-desc {
+            color: var(--admin-text-muted);
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
+
+        /* --- Premium Cards --- */
+        .dashboard-card {
+            background: var(--admin-card-bg);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid var(--admin-border);
+            box-shadow: var(--admin-shadow);
+            transition: var(--admin-transition);
+            height: 100%;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-label {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--admin-text-muted);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--admin-sidebar-bg);
+            margin-bottom: 12px;
+        }
+
+        .card-stat {
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-up {
+            color: #12b76a;
+        }
+
+        /* --- Table Styling --- */
+        .table-container {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--admin-border);
+            overflow: hidden;
+            box-shadow: var(--admin-shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f9fafb;
+            padding: 16px 24px;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--admin-text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        td {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--admin-border);
+            font-size: 0.9375rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Form Elements --- */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--admin-sidebar-bg);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: var(--admin-transition);
+            box-sizing: border-box;
+            background: #fdfdfd;
+            color: var(--admin-sidebar-bg);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23c5a059'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 18px;
+            padding-right: 48px;
+            cursor: pointer;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--admin-accent);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.15);
+        }
+
+        /* --- Animations & Loaders --- */
+        @keyframes shimmer {
+            0% {
+                background-position: -468px 0;
+            }
+
+            100% {
+                background-position: 468px 0;
+            }
+        }
+
+        .loading-shimmer {
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%;
+            display: inline-block;
+            position: relative;
+            animation-duration: 1.5s;
+            animation-fill-mode: forwards;
+            animation-iteration-count: infinite;
+            animation-name: shimmer;
+            animation-timing-function: linear;
+            color: transparent !important;
+            pointer-events: none;
+        }
+
+        /* --- Buttons --- */
+        .btn-primary {
+            background: var(--admin-sidebar-bg);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--admin-transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #1c2a4e;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--admin-border);
+            padding: 10px 18px;
+            border-radius: 8px;
+            color: var(--admin-text-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--admin-transition);
+        }
+
+        .btn-outline:hover {
+            background: #f9fafb;
+            border-color: #d0d5dd;
+        }
+
+        /* --- Toast --- */
+        #toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: var(--admin-sidebar-bg);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 20px 24px -4px rgba(16, 24, 40, 0.1);
+            transform: translateY(100px);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 992px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: var(--admin-transition);
+            }
+
+            .admin-sidebar.active {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+                padding: 24px;
+            }
+
+            #pageTitle {
+                font-size: 1.75rem;
+            }
+        }
+        /* --- Compact Calendar Overrides --- */
+        #calendar .fc-toolbar { padding: 6px 0; margin-bottom: 6px !important; }
+        #calendar .fc-toolbar-title { font-size: 0.95rem !important; font-weight: 700; }
+        #calendar .fc-button { padding: 3px 8px !important; font-size: 0.75rem !important; }
+        #calendar .fc-daygrid-day-number { font-size: 0.75rem; padding: 2px 4px; }
+        #calendar .fc-col-header-cell { font-size: 0.7rem; padding: 4px 0; }
+        #calendar .fc-daygrid-day-frame { min-height: 28px !important; }
+        #calendar .fc-daygrid-event { font-size: 0.65rem !important; padding: 1px 4px; }
+        #calendar .fc-scrollgrid-sync-table td { height: 34px !important; }
+    </style>
+
+    <!-- SEO & Analytics -->
+    <meta name="description" content="KALTO LAW AND SERVICES LTD provides elite legal advocacy in Rwanda. Specializing in Corporate, Commercial, Family, Real Estate, and ADR.">
+    <meta name="keywords" content="Rwanda Law Firm, Kigali Lawyers, Corporate Law Rwanda, Legal Services, KALTO LAW">
+    <meta property="og:title" content="KALTO LAW AND SERVICES LTD | Premier Legal Advocacy in Rwanda">
+    <meta property="og:description" content="Tier-one legal advising with a focus on strategic results in Rwanda.">
+    <meta property="og:image" content="https://kalto-law.web.app/images/CHOOSE.jpg">
+    <meta property="og:url" content="https://kalto-law.web.app/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <script src="js/analytics.js"></script>
+
+
+    <!-- Google Analytics GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', { send_page_view: true });
+      window.gaEvent = function(action, category, label, value) {
+        if (typeof gtag !== 'undefined') gtag('event', action, { event_category: category, event_label: label, value: value });
+      };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Login Screen -->
+    <div id="loginView" class="admin-login-wrapper">
+        <div class="admin-card-login">
+            <div class="logo mb-md">
+                <i class="fa-solid fa-scale-balanced"
+                    style="font-size: 3rem; color: var(--admin-sidebar-bg); margin-bottom: 16px;"></i>
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--admin-sidebar-bg);">
+                    KALTO <span style="color: var(--admin-accent);">LAW</span></h2>
+            </div>
+            <p style="color: var(--admin-text-muted); margin-bottom: 32px; font-size: 1.1rem;">Secure Administrator
+                Portal</p>
+
+            <form id="loginForm">
+                <div class="form-group" style="text-align: left;">
+                    <label for="adminEmail">Email Address</label>
+                    <input type="email" id="adminEmail" class="form-control" placeholder="admin@kaltolaw.com" required>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary"
+                    style="width: 100%; justify-content: center; margin-top: 16px; font-size: 1.1rem;">Sign In to
+                    Dashboard</button>
+            </form>
+            <p id="loginError" class="mt-md"
+                style="display: none; color: #d92d20; font-weight: 600; font-size: 0.9rem;"></p>
+        </div>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <a href="index.html" class="logo" style="color: white; font-size: 1rem;">
+            <i class="fa-solid fa-scale-balanced text-gold"></i>
+            <span>KALTO <span class="text-gold">LAW</span></span>
+        </a>
+        <button id="mobileMenuBtn" style="background: none; border: none; color: white; font-size: 1.5rem;">
+            <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+    </div>
+
+    <!-- Dashboard Main -->
+    <div id="dashboardView" class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-brand">
+                <a href="index.html" class="logo-text">
+                    <i class="fa-solid fa-scale-balanced" style="color: var(--admin-accent); margin-right: 8px;"></i>
+                    <span>KALTO <span style="color: var(--admin-accent);">LAW</span></span>
+                </a>
+                <p
+                    style="font-size: 0.75rem; color: #64748b; margin-top: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                    Control Panel</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" class="active" data-tab="overview"><i class="fa-solid fa-house-chimney"></i> Overview</a></li>
+                    <li><a href="#" data-tab="content"><i class="fa-solid fa-pen-nib"></i> Edit Content</a></li>
+                    <li><a href="#" data-tab="blog"><i class="fa-solid fa-scroll"></i> Legal Insights</a></li>
+                    <li><a href="#" data-tab="documents"><i class="fa-solid fa-folder-open"></i> Documents</a></li>
+                    <li><a href="#" data-tab="messages"><i class="fa-solid fa-comment-dots"></i> Client Messages</a></li>
+                                        <li><a href="#" data-tab="appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</a></li>
+                    <li><a href="#" data-tab="tasks"><i class="fa-solid fa-list-check"></i> Task Board</a></li>
+                    <li><a href="#" data-tab="cases"><i class="fa-solid fa-folder-tree"></i> Case Manager</a></li>
+                    <li><a href="#" data-tab="uploads"><i class="fa-solid fa-cloud-arrow-down"></i> Client Uploads</a></li>
+                    <li><a href="#" data-tab="billing"><i class="fa-solid fa-file-invoice-dollar"></i> Billing</a></li>
+                    <!-- <li><a href="#" data-tab="lawyerinbox"><i class="fa-solid fa-comments"></i> Ask a Lawyer <span id="inboxBadge" style="background:#d92d20;color:#fff;font-size:0.65rem;padding:1px 6px;border-radius:50px;margin-left:4px;font-weight:700"></span></a></li>
+                    <li><a href="#" data-tab="clientaccounts"><i class="fa-solid fa-users"></i> Client Accounts</a></li> -->
+                </ul>
+                <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <a href="#" id="logoutBtn"
+                        style="color: #fda29b; display: flex; align-items: center; text-decoration: none; font-weight: 600; padding: 12px 16px;">
+                        <i class="fa-solid fa-power-off" style="margin-right: 12px;"></i> Logout
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="admin-main">
+            <header class="mb-xl d-flex justify-content-between align-center" style="gap: 24px;">
+                <div>
+                    <h1 id="pageTitle">Dashboard Overview</h1>
+                    <p class="text-muted">Welcome back, Administrator.</p>
+                </div>
+                <div style="flex: 1; max-width: 400px; display: flex; gap: 8px;">
+                    <div style="position: relative; width: 100%;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--admin-text-muted);"></i>
+                        <input type="text" id="conflictSearchInput" class="form-control" placeholder="Conflict Check: Search name/email..." style="padding-left: 44px; border-radius: 50px; background: white;">
+                    </div>
+                    <button id="conflictSearchBtn" class="btn-primary" style="border-radius: 50px; padding: 12px 20px;"><i class="fa-solid fa-search"></i></button>
+                </div>
+                <div class="status-badge status-online">
+                    <i class="fa-solid fa-circle" style="font-size: 8px; margin-right: 5px;"></i> System Online
+                </div>
+            </header>
+
+            <!-- Tab Content: Overview -->
+            <div id="overviewTab" class="tab-pane">
+                <div class="grid grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                    <div class="dashboard-card">
+                        <span class="card-label">Server Status</span>
+                        <div class="card-value">Live</div>
+                        <div class="card-stat stat-up">
+                            <i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> 100% Uptime
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <span class="card-label">Active Insights</span>
+                        <div class="card-value" id="insightCount">...</div>
+                        <div class="card-stat" style="color: var(--admin-text-muted);">
+                            Live on website
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <span class="card-label">Stored Documents</span>
+                        <div class="card-value" id="vaultCount">...</div>
+                        <div class="card-stat" style="color: var(--admin-text-muted);">
+                            In secure vault
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2"
+                    style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 32px;">
+                    <!-- Recent Leads Table -->
+                    <div class="table-container">
+                        <div
+                            style="padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; margin: 0;">Recent
+                                Client Leads</h3>
+                            <button class="btn-outline" style="font-size: 0.75rem; padding: 6px 12px;"
+                                onclick="switchTab('messages')">View All</button>
+                        </div>
+                        <table id="leadsTable">
+                            <thead>
+                                <tr>
+                                    <th>Potential Client</th>
+                                    <th>Subject</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsTableBody">
+                                <tr>
+                                    <td colspan="3"
+                                        style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                                        Checking Formspree for new enquiries...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="dashboard-card">
+                        <h3
+                            style="font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 24px; color: var(--admin-sidebar-bg);">
+                            Quick Actions</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn-outline" onclick="switchTab('content')">Update Section Text</button>
+                            <button class="btn-outline" onclick="switchTab('blog')">Post New Insight</button>
+                            <button class="btn-outline" onclick="switchTab('documents')">View Case Documents</button>
+                            <a href="index.html" class="btn-primary"
+                                style="text-decoration: none; justify-content: center; margin-top: 12px;">Preview
+                                Website</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
+                    <div class="dashboard-card">
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 24px; color: var(--admin-sidebar-bg);">Revenue Overview</h3>
+                        <canvas id="revenueChart" style="width: 100%; height: 250px;"></canvas>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 24px; color: var(--admin-sidebar-bg);">Case Distribution</h3>
+                        <canvas id="casesChart" style="width: 100%; height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Content Editor -->
+            <div id="contentTab" class="tab-pane" style="display: none;">
+                <div class="dashboard-card" style="max-width: 900px;">
+                    <h3
+                        style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 8px; color: var(--admin-sidebar-bg);">
+                        Section Content Manager</h3>
+                    <p style="color: var(--admin-text-muted); margin-bottom: 32px;">Modify live website text by
+                        selecting a target section below.</p>
+
+                    <div class="form-group">
+                        <label>Select Target Section</label>
+                        <select id="cmsSelectorEl" class="form-control" style="max-width: 500px; height: 54px; font-weight: 600;">
+                            <optgroup label="About Us Page">
+                                <option value="about_mission_1">Mission — Paragraph 1</option>
+                                <option value="about_mission_2">Mission — Paragraph 2</option>
+                                <option value="about_founder_bio">Founder Biography</option>
+                            </optgroup>
+                            <optgroup label="Practice Areas Page">
+                                <option value="practice_1_desc">Corporate Law</option>
+                                <option value="practice_4_desc">Company Matters</option>
+                                <option value="practice_5_desc">Commercial Matters</option>
+                                <option value="practice_6_desc">ADR / Mediation</option>
+                                <option value="practice_7_desc">Family Matters</option>
+                                <option value="practice_8_desc">Real Estate Planning</option>
+                                <option value="practice_9_desc">Labour Law</option>
+                                <option value="practice_10_desc">Consumer Protection</option>
+                                <option value="practice_11_desc">Tax Law</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Section Content</label>
+                        <textarea class="form-control" rows="10"
+                            style="font-family: 'Inter', sans-serif; line-height: 1.6; padding: 20px; resize: vertical;">Loading current content...</textarea>
+                    </div>
+                    <div style="display: flex; gap: 16px;">
+                        <button id="cmsSaveBtn" class="btn-primary" style="padding: 14px 32px; font-size: 1rem;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Update Live Website
+                        </button>
+                        <button id="cmsSeedBtn" class="btn-outline" style="font-size: 0.9rem; border-color: #cbd5e1;">
+                            <i class="fa-solid fa-sync"></i> Sync Initial Content
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blog/Insights Tab -->
+            <div id="blogTab" class="tab-pane" style="display: none;">
+
+                <!-- Blog List View -->
+                <div id="blogListView">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                        <div>
+                            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Legal Insights Repository</h3>
+                            <p style="color: var(--admin-text-muted);">Write and publish articles directly to your website.</p>
+                        </div>
+                        <button class="btn-primary" id="newPostBtn">
+                            <i class="fa-solid fa-pen-nib"></i> Write New Insight
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Insight Title</th>
+                                    <th>Category</th>
+                                    <th>Published Date</th>
+                                    <th style="text-align: right;">Management</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blogTableBody">
+                                <!-- Rows dynamically loaded by admin.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Blog Editor View (hidden by default) -->
+                <div id="blogEditorView" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+                        <button id="backToListBtn" class="btn-outline" style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                            <i class="fa-solid fa-arrow-left"></i> Back to List
+                        </button>
+                        <div>
+                            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);" id="editorHeading">Write New Legal Insight</h3>
+                            <p style="color: var(--admin-text-muted);" id="editorSubtitle">Published articles appear live on the website instantly.</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card" style="max-width: 900px;">
+                        <input type="hidden" id="editingPostId">
+                        <div class="form-group">
+                            <label for="postTitle">Article Title</label>
+                            <input type="text" id="postTitle" class="form-control" placeholder="e.g. Understanding the New Corporate Tax Law in Rwanda">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div class="form-group">
+                                <label for="postCategory">Category</label>
+                                <select id="postCategory" class="form-control" style="height: 54px;">
+                                    <option value="Corporate Law">Corporate Law</option>
+                                    <option value="Commercial Matters">Commercial Matters</option>
+                                    <option value="Family Matters">Family Matters</option>
+                                    <option value="Real Estate">Real Estate Planning</option>
+                                    <option value="Labour Law">Labour Law</option>
+                                    <option value="Tax Law">Tax Law</option>
+                                    <option value="Consumer Protection">Consumer Protection</option>
+                                    <option value="ADR &amp; Mediation">ADR &amp; Mediation</option>
+                                    <option value="Legal Update">Legal Update</option>
+                                    <option value="Firm News">Firm News</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="postCoverImage">Cover Image URL (Optional)</label>
+                                <input type="url" id="postCoverImage" class="form-control" placeholder="https://...">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="postExcerpt">Brief Summary / Excerpt</label>
+                            <textarea id="postExcerpt" class="form-control" rows="3" placeholder="A short 1-2 sentence summary shown on the blog listing page..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="postContent">Full Article Content</label>
+                            <textarea id="postContent" class="form-control" rows="22" style="font-family: 'Inter', sans-serif; line-height: 1.8; resize: vertical;" placeholder="Write your full article here. Use HTML tags like &lt;h2&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;li&gt; to format your content..."></textarea>
+                        </div>
+                        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                            <button id="publishPostBtn" class="btn-primary" style="padding: 14px 32px; font-size: 1rem;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> <span id="publishBtnText">Publish Insight</span>
+                            </button>
+                            <button id="cancelEditBtn" class="btn-outline">Cancel</button>
+                            <span id="editorStatus" style="color: #12b76a; font-size: 0.875rem; font-weight: 600;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Tab -->
+            <div id="documentsTab" class="tab-pane" style="display: none;">
+                <div style="margin-bottom: 32px;">
+                    <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Case Documents</h3>
+                    <p style="color: var(--admin-text-muted);">PDF documents organized by case status. Open cases are active; Closed cases are archived.</p>
+                </div>
+                <!-- Sub-tab buttons -->
+                <div style="display: flex; gap: 0; margin-bottom: 32px; border-bottom: 2px solid var(--admin-border);">
+                    <button id="docSubtabOpen" onclick="switchDocSubtab('open')" style="padding: 10px 28px; font-weight: 700; font-size: 0.9rem; border: none; background: none; cursor: pointer; border-bottom: 3px solid var(--admin-accent); color: var(--admin-sidebar-bg); margin-bottom: -2px; transition: all 0.2s;">&#128196; Open Cases</button>
+                    <button id="docSubtabClosed" onclick="switchDocSubtab('closed')" style="padding: 10px 28px; font-weight: 700; font-size: 0.9rem; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--admin-text-muted); margin-bottom: -2px; transition: all 0.2s;">&#10003; Closed Cases</button>
+                </div>
+                <div id="openCasesView">
+                    <div id="openCasesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px;">
+                        <div style="text-align:center;padding:40px;color:var(--admin-text-muted);grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Loading open cases...</div>
+                    </div>
+                </div>
+                <div id="closedCasesView" style="display: none;">
+                    <div id="closedCasesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px;">
+                        <div style="text-align:center;padding:40px;color:var(--admin-text-muted);grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Loading closed cases...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case Manager Tab -->
+            <div id="casesTab" class="tab-pane" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Legal Case Manager</h3>
+                        <p style="color: var(--admin-text-muted);">Approved cases appear here automatically. Mark as Done when complete — they move to Documents &rsaquo; Closed.</p>
+                    </div>
+                    <button class="btn-primary" id="newCaseBtn"><i class="fa-solid fa-folder-plus"></i> New Case</button>
+                </div>
+                <div id="casesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 24px;">
+                    <div style="text-align:center;padding:60px;color:var(--admin-text-muted);grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Loading case database...</div>
+                </div>
+            </div>
+
+            <!-- Appointments Tab -->
+            <div id="appointmentsTab" class="tab-pane" style="display: none;">
+                <div class="d-flex justify-content-between align-center" style="margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Consultation Appointments</h3>
+                        <p style="color: var(--admin-text-muted);">Manage scheduled consultations from the website.</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-card" style="margin-bottom: 24px; padding: 16px;">
+                    <div id="calendar" style="min-height: 280px;"></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Service</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--admin-text-muted); padding: 40px;">
+                                    Loading appointments...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+                        <!-- Tasks Tab -->
+            <div id="tasksTab" class="tab-pane" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Firm Task & Deadline Board</h3>
+                        <p style="color: var(--admin-text-muted);">Manage internal deadlines via drag-and-drop. Connect tasks to tracking codes.</p>
+                    </div>
+                    <button class="btn-primary" id="newTaskBtn"><i class="fa-solid fa-plus"></i> Add Task</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                    <!-- To Do -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+                        <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #475569; display: flex; align-items: center; gap: 8px;"><div style="width:10px;height:10px;border-radius:50%;background:#94a3b8;"></div>To Do</h4>
+                        <div id="kanbanTodo" class="kanban-column" data-status="todo" style="min-height: 400px; display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                    <!-- In Progress -->
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px;">
+                        <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #1e40af; display: flex; align-items: center; gap: 8px;"><div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;"></div>In Progress</h4>
+                        <div id="kanbanProgress" class="kanban-column" data-status="progress" style="min-height: 400px; display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                    <!-- Done -->
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px;">
+                        <h4 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #166534; display: flex; align-items: center; gap: 8px;"><div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>Done</h4>
+                        <div id="kanbanDone" class="kanban-column" data-status="done" style="min-height: 400px; display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Tab -->
+            <div id="messagesTab" class="tab-pane" style="display: none;">
+                <div class="d-flex justify-content-between align-center" style="margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Client Message Inquiries</h3>
+                        <p style="color: var(--admin-text-muted);">Real-time inquiries from the website contact form. Reply, convert to a case, or export.</p>
+                    </div>
+                    <button class="btn-outline" onclick="exportMessagesCSV()" style="padding: 8px 16px; font-weight: 600;"><i class="fa-solid fa-download"></i> Export CSV</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Subject/Area</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                                <th>Date Received</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="messagesTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--admin-text-muted); padding: 40px;">
+                                    Fetching client inquiries...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Billing Tab -->
+            <div id="billingTab" class="tab-pane" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Billing</h3>
+                        <p style="color: var(--admin-text-muted);">Create invoices and download receipts for paid clients.</p>
+                    </div>
+                    <button class="btn-primary" id="newInvoiceBtn"><i class="fa-solid fa-file-invoice"></i> Create Invoice</button>
+                </div>
+                <!-- Inner sub-tabs -->
+                <div style="display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid var(--admin-border);">
+                    <button id="billingSubtabInvoices" onclick="switchBillingSubtab('invoices')" style="padding: 10px 28px; font-weight: 700; font-size: 0.9rem; border: none; background: none; cursor: pointer; border-bottom: 3px solid var(--admin-accent); color: var(--admin-sidebar-bg); margin-bottom: -2px; transition: all 0.2s;">&#128196; Invoices</button>
+                    <button id="billingSubtabReceipts" onclick="switchBillingSubtab('receipts')" style="padding: 10px 28px; font-weight: 700; font-size: 0.9rem; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--admin-text-muted); margin-bottom: -2px; transition: all 0.2s;">&#9989; Receipts</button>
+                </div>
+                <!-- Invoices sub-view -->
+                <div id="billingInvoicesView">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Client Name</th>
+                                    <th>Amount (RWF)</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTableBody">
+                                <tr><td colspan="5" style="text-align:center;color:var(--admin-text-muted);padding:40px;">Loading invoices...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Receipts sub-view -->
+                <div id="billingReceiptsView" style="display: none;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Receipt #</th>
+                                    <th>Client</th>
+                                    <th>Amount (RWF)</th>
+                                    <th>Paid On</th>
+                                    <th style="text-align: right;">Download</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receiptsTableBody">
+                                <tr><td colspan="5" style="text-align:center;color:var(--admin-text-muted);padding:40px;">Loading receipts...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Uploads Tab -->
+            <div id="uploadsTab" class="tab-pane" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Client Uploads</h3>
+                        <p style="color: var(--admin-text-muted);">View PDFs clients uploaded. Approve a file to attach it directly to their case. <strong id="uploadsCount" style="color:var(--admin-accent);">0</strong> total files.</p>
+                    </div>
+                    <div style="position:relative;">
+                        <i class="fa-solid fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#98a2b3;"></i>
+                        <input type="text" id="uploadsSearch" placeholder="Search by case code or filename..." style="padding:10px 14px 10px 38px;border:1px solid var(--admin-border);border-radius:10px;font-size:0.88rem;width:280px;outline:none;font-family:'Inter',sans-serif;" oninput="renderUploadsList(this.value)">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Case Code</th>
+                                <th>File (PDF)</th>
+                                <th>Uploaded</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="uploadsTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:40px;">Loading client uploads...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ask a Lawyer Inbox Tab -->
+            <div id="lawyerinboxTab" class="tab-pane" style="display: none;">
+                <div class="d-flex justify-content-between align-center" style="margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Ask a Lawyer — Client Inbox</h3>
+                        <p style="color: var(--admin-text-muted);">Secure messages from authenticated clients via their portal.</p>
+                    </div>
+                </div>
+                <div id="lawyerInboxList" style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Messages will be injected here by admin.js -->
+                </div>
+            </div>
+
+            <!-- Client Accounts Tab -->
+            <div id="clientaccountsTab" class="tab-pane" style="display: none;">
+                <div class="d-flex justify-content-between align-center" style="margin-bottom: 32px;">
+                    <div>
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);">Client Accounts Directory</h3>
+                        <p style="color: var(--admin-text-muted);">Manage registered portal clients and link them to their tracking codes.</p>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Registered Date</th>
+                                <th style="text-align: right;">Management</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientAccountsBody">
+                            <tr><td colspan="5" style="text-align: center; padding: 40px;">Loading client accounts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-dBhS8buRdeDHtfEqKAfz_G6LEgpDSa8",
+            authDomain: "kalto-law.firebaseapp.com",
+            projectId: "kalto-law",
+            storageBucket: "kalto-law.firebasestorage.app",
+            messagingSenderId: "596851588699",
+            appId: "1:596851588699:web:71089a814478b55532097e",
+            measurementId: "G-11XBGR7XBX"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Make globally available
+        window.fbAuth = auth;
+        window.fbDb = db;
+        window.fbStorage = storage;
+    </script>
+    <script src="js/admin.js"></script>
+
+    <!-- UI Containers -->
+    <div id="toast"></div>
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <i id="modalIcon" class="fa-solid fa-circle-question"></i>
+                <h3 id="modalTitle">Confirm Action</h3>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic Content -->
+            </div>
+            <div class="modal-footer">
+                <button id="modalCancel" class="btn-outline" style="border-color: #d0d5dd;">Cancel</button>
+                <button id="modalConfirm" class="btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Check Modal -->
+    <div id="conflictCheckModal" class="admin-login-wrapper" style="display: none; background: rgba(13, 27, 53, 0.7); z-index: 100000;">
+        <div class="admin-card-login" style="max-width: 600px; width: 90%; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--admin-sidebar-bg);"><i class="fa-solid fa-magnifying-glass"></i> Conflict Check Results</h3>
+                <button id="closeConflictModal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #667085;">&times;</button>
+            </div>
+            <p style="color: var(--admin-text-muted); margin-bottom: 24px;" id="conflictSearchTermDisplay">Searching for: <strong>...</strong></p>
+            <div id="conflictResultsContainer" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Results injected here -->
+            </div>
+        </div>
+    </div></body>
+
+</html>
+

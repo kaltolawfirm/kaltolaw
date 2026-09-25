@@ -1,1 +1,639 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title></title><style>*{margin:0;padding:0}html,body{background:#fff;width:100%;height:100%}</style></head><body></body></html>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SEO: Canonical + Meta -->
+    <link rel="canonical" href="https://kalto-law.web.app/pay">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Kalto Law And Services Ltd">
+    <meta name="keywords" content="pay invoice Kalto Law, MoMo payment Rwanda, legal invoice payment">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kalto-law.web.app/pay">
+    <meta property="og:title" content="Secure Invoice Payment — Kalto Law Rwanda">
+    <meta property="og:description" content="Pay your Kalto Law invoice securely online using MTN MoMo, Airtel Money, or card payments via Flutterwave.">
+    <meta property="og:image" content="https://kalto-law.web.app/images/CHOOSE.jpg">
+    <meta property="og:site_name" content="Kalto Law And Services Ltd">
+    <meta property="og:locale" content="en_RW">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Secure Invoice Payment — Kalto Law Rwanda">
+    <meta name="twitter:description" content="Pay your Kalto Law invoice securely online using MTN MoMo, Airtel Money, or card payments via Flutterwave.">
+    <meta name="twitter:image" content="https://kalto-law.web.app/images/CHOOSE.jpg">
+    <!-- Performance: Resource hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d1b35">
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+    <title>Secure Invoice Payment — Kalto Law Rwanda</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/style.css?v=1778353129677">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <meta name="description" content="Pay your Kalto Law invoice securely online using MTN MoMo, Airtel Money, or card payments via Flutterwave.">
+    <script src="js/analytics.js"></script>
+    <style>
+        .pay-hero {
+            background: linear-gradient(135deg, #0d1b35 0%, #1a3060 60%, #c5a059 100%);
+            padding: 110px 0 90px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .pay-hero::before {
+            content: '⚖';
+            position: absolute;
+            font-size: 300px;
+            opacity: 0.04;
+            right: -40px;
+            top: -40px;
+            line-height: 1;
+        }
+        .pay-hero h1 { font-family: 'Playfair Display', serif; font-size: 2.6rem; margin-bottom: 12px; }
+        .pay-hero p { opacity: 0.85; font-size: 1.1rem; max-width: 520px; margin: 0 auto; }
+
+        .pay-wrap {
+            max-width: 640px;
+            margin: -50px auto 80px;
+            position: relative;
+            z-index: 10;
+            padding: 0 20px;
+        }
+
+        .pay-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(13,27,53,0.14);
+            overflow: hidden;
+        }
+
+        .pay-card-header {
+            background: linear-gradient(90deg, #0d1b35, #1a3060);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #c5a059;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .pay-card-body { padding: 36px 32px; }
+
+        /* Search */
+        .search-row { display: flex; gap: 12px; }
+        .search-row input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e4e7ec;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .search-row input:focus { outline: none; border-color: #c5a059; }
+        .search-row button {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #c5a059, #b08d4d);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .search-row button:hover { transform: translateY(-1px); opacity: 0.9; }
+
+        /* Invoice detail card */
+        .inv-detail {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px solid #f1f3f9;
+            padding-top: 28px;
+            animation: fadeUp 0.4s ease;
+        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+        .inv-summary {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 24px;
+            border: 1px solid #e4e7ec;
+        }
+        .inv-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            font-size: 0.93rem;
+            border-bottom: 1px solid #f1f3f9;
+        }
+        .inv-row:last-child { border: none; }
+        .inv-row .label { color: #667085; }
+        .inv-row .value { font-weight: 600; color: #0d1b35; }
+        .inv-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px dashed #c5a059;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #0d1b35;
+        }
+        .inv-total .amount { color: #c5a059; }
+
+        /* Status badges */
+        .badge-paid { background: #dcfce7; color: #166534; padding: 4px 14px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; }
+        .badge-unpaid { background: #fef2f2; color: #991b1b; padding: 4px 14px; border-radius: 50px; font-weight: 700; font-size: 0.8rem; }
+
+        /* Payment method selector */
+        .method-title { font-weight: 700; color: #0d1b35; margin-bottom: 14px; font-size: 1rem; }
+        .methods-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .method-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 12px;
+            border: 2px solid #e4e7ec;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #344054;
+            transition: all 0.25s;
+        }
+        .method-btn:hover { border-color: #c5a059; background: #fffbf4; transform: translateY(-2px); }
+        .method-btn.active { border-color: #c5a059; background: #fffbf4; box-shadow: 0 0 0 3px rgba(197,160,89,0.15); }
+        .method-btn .icon { font-size: 1.6rem; }
+        .method-btn.momo .icon { color: #ffcc00; }
+        .method-btn.airtel .icon { color: #e00; }
+        .method-btn.card .icon { color: #1a56db; }
+        .method-btn.bank .icon { color: #0d1b35; }
+
+        /* Pay button */
+        .pay-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #c5a059 0%, #b08d4d 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(197,160,89,0.35);
+            font-family: 'Inter', sans-serif;
+        }
+        .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(197,160,89,0.45); }
+        .pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Bank details panel */
+        .bank-panel {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #e4e7ec;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+        .bank-panel p { margin: 6px 0; font-size: 0.93rem; }
+        .bank-panel strong { color: #0d1b35; }
+
+        /* Success state */
+        .success-state {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+            animation: fadeUp 0.5s ease;
+        }
+        .success-icon {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #12b76a, #059669);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem; color: #fff;
+            box-shadow: 0 8px 24px rgba(18,183,106,0.35);
+        }
+        .success-state h3 { font-family: 'Playfair Display', serif; color: #0d1b35; font-size: 1.6rem; margin-bottom: 8px; }
+        .success-state p { color: #667085; font-size: 0.95rem; line-height: 1.6; }
+
+        /* Trust badges */
+        .trust-row {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+        .trust-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.78rem; color: #667085; font-weight: 500;
+        }
+        .trust-item i { color: #12b76a; }
+
+        .error-msg { color: #d92d20; font-size: 0.88rem; margin-top: 8px; display: none; }
+
+        @media (max-width: 520px) {
+            .pay-card-body { padding: 24px 20px; }
+            .methods-grid { grid-template-columns: 1fr 1fr; }
+            .pay-hero h1 { font-size: 1.8rem; }
+        }
+    </style>
+
+    <!-- Google Analytics GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', {
+        page_title: document.title,
+        page_location: window.location.href,
+        send_page_view: true
+      });
+      // Helper for custom events
+      window.gaEvent = function(action, category, label, value) {
+        gtag('event', action, { event_category: category, event_label: label, value: value });
+      };
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap">
+    <link rel="stylesheet" href="css/site-header.css">
+    <script src="js/site-header.js" defer></script>
+</head>
+<body>
+
+    <div class="kh-bar">
+        <header class="kh-header">
+            <button class="kh-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="kh-menu">
+                <span></span><span></span><span></span>
+            </button>
+
+            <a href="index.html" class="kh-logo" aria-label="Kalto Law, home">
+<img src="images/logo-kalto.png?v=1790350702" alt="" width="640" height="335">
+            </a>
+
+            <div class="kh-header-actions">
+                <a href="contact.html" class="kh-pill">Enquiry
+                    <span class="kh-pill-arrow"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 11 11 3M5 3h6v6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </a>
+            </div>
+
+            <nav id="kh-menu" class="kh-menu" aria-label="Main" hidden>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About us</a></li>
+                    <li><a href="practice-areas.html">Practice areas</a></li>
+                    <li><a href="team.html">Our team</a></li>
+                    <li><a href="case-results.html">Case results</a></li>
+                    <li><a href="track-case.html">Track your case</a></li>
+                    <li><a href="fee-estimator.html">Fee estimator</a></li>
+                    <li><a href="faq.html">FAQ</a></li>
+                    <li><a href="blog.html">Legal insights</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="kh-menu-phone"><a href="tel:+250790750000"><i class="fa-solid fa-phone"></i>&nbsp; +250 790 750 000</a></div>
+            </nav>
+        </header>
+    </div>
+
+    <div class="pay-hero">
+        <div class="container">
+            <h1>Secure Payment Portal</h1>
+            <p>Pay your legal invoice instantly using MTN MoMo, Airtel Money, Visa, or Mastercard.</p>
+        </div>
+    </div>
+
+    <div class="pay-wrap">
+        <div class="pay-card">
+            <div class="pay-card-header">
+                <i class="fa-solid fa-lock"></i>
+                <span>256-bit SSL Encrypted &nbsp;|&nbsp; Powered by Flutterwave</span>
+            </div>
+            <div class="pay-card-body">
+
+                <!-- Step 1: Invoice Search -->
+                <div id="searchSection">
+                    <h3 style="font-family:'Playfair Display',serif;color:#0d1b35;margin-bottom:6px;">Find Your Invoice</h3>
+                    <p style="color:#667085;font-size:0.93rem;margin-bottom:20px;">Enter your invoice number as provided by your attorney (e.g. INV-2026-001).</p>
+                    <div class="search-row">
+                        <input type="text" id="invoiceInput" placeholder="INV-XXXX-XXX" autocomplete="off" style="text-transform:uppercase;">
+                        <button id="findBtn" onclick="findInvoice()"><i class="fa-solid fa-search"></i> Search</button>
+                    </div>
+                    <p id="searchError" class="error-msg"></p>
+                </div>
+
+                <!-- Step 2: Invoice Details + Payment -->
+                <div id="invoiceSection" class="inv-detail">
+
+                    <div class="inv-summary">
+                        <div class="inv-row">
+                            <span class="label">Invoice No.</span>
+                            <span class="value" id="dInvId">—</span>
+                        </div>
+                        <div class="inv-row">
+                            <span class="label">Client Name</span>
+                            <span class="value" id="dClientName">—</span>
+                        </div>
+                        <div class="inv-row">
+                            <span class="label">Description</span>
+                            <span class="value" id="dDesc">—</span>
+                        </div>
+                        <div class="inv-row">
+                            <span class="label">Status</span>
+                            <span id="dStatus">—</span>
+                        </div>
+                        <div class="inv-total">
+                            <span>Total Due</span>
+                            <span class="amount" id="dAmount">RWF 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment options (only shown if unpaid) -->
+                    <div id="paymentSection">
+                        <p class="method-title">Select Payment Method</p>
+                        <div class="methods-grid">
+                            <button class="method-btn momo active" id="btnMomo" onclick="selectMethod('momo')">
+                                <span class="icon">📱</span>MTN MoMo
+                            </button>
+                            <button class="method-btn airtel" id="btnAirtel" onclick="selectMethod('airtel')">
+                                <span class="icon">📲</span>Airtel Money
+                            </button>
+                            <button class="method-btn card" id="btnCard" onclick="selectMethod('card')">
+                                <span class="icon">💳</span>Visa / Card
+                            </button>
+                            <button class="method-btn bank" id="btnBank" onclick="selectMethod('bank')">
+                                <span class="icon">🏦</span>Bank Transfer
+                            </button>
+                        </div>
+
+                        <!-- Bank Transfer Panel -->
+                        <div id="bankPanel" class="bank-panel">
+                            <h4 style="margin-bottom:12px;color:#0d1b35;"><i class="fa-solid fa-building-columns" style="color:#c5a059;margin-right:8px;"></i>Bank Transfer Details</h4>
+                            <p><strong>Bank:</strong> Bank of Kigali</p>
+                            <p><strong>Account Name:</strong> KALTO LAW AND SERVICES LTD</p>
+                            <p><strong>Account Number:</strong> 0000000000000</p>
+                            <p style="margin-top:12px;color:#667085;font-size:0.85rem;">
+                                Use Invoice No. <strong id="bankRef" style="color:#0d1b35;"></strong> as your payment reference.<br>
+                                Allow 1–2 business days for verification. Email <a href="mailto:info@kaltolawfirm.com" style="color:#c5a059;">info@kaltolawfirm.com</a> once transferred.
+                            </p>
+                        </div>
+
+                        <!-- Pay Now Button (for MoMo / Card) -->
+                        <button class="pay-btn" id="payNowBtn" onclick="initiatePayment()" style="margin-top:16px;">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Pay Securely Now
+                        </button>
+                    </div>
+
+                    <!-- Already Paid State -->
+                    <div id="alreadyPaid" style="display:none;text-align:center;padding:20px 0;">
+                        <div style="width:60px;height:60px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.5rem;">✅</div>
+                        <h4 style="color:#166534;margin-bottom:6px;">Invoice Already Paid</h4>
+                        <p style="color:#667085;font-size:0.9rem;">This invoice has been settled. <a href="portal.html" style="color:#c5a059;">View your portal</a> for receipts.</p>
+                    </div>
+
+                    <button onclick="resetSearch()" style="background:none;border:none;color:#667085;cursor:pointer;font-size:0.85rem;margin-top:16px;text-decoration:underline;">
+                        ← Search a different invoice
+                    </button>
+                </div>
+
+                <!-- Step 3: Success State -->
+                <div id="successState" class="success-state">
+                    <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+                    <h3>Payment Successful!</h3>
+                    <p>Your payment has been received and your invoice has been marked as <strong>Paid</strong>.<br>
+                    A confirmation will be sent to your registered email address.</p>
+                    <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                        <a href="portal.html" class="btn btn-primary">View My Portal</a>
+                        <a href="index.html" class="btn btn-outline">Return Home</a>
+                    </div>
+                </div>
+
+                <!-- Trust Badges -->
+                <div class="trust-row">
+                    <span class="trust-item"><i class="fa-solid fa-lock"></i> SSL Secured</span>
+                    <span class="trust-item"><i class="fa-solid fa-shield-halved"></i> PCI Compliant</span>
+                    <span class="trust-item"><i class="fa-solid fa-circle-check"></i> Instant Receipt</span>
+                    <span class="trust-item"><i class="fa-solid fa-headset"></i> 24hr Support</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <!-- Flutterwave Inline SDK -->
+    <script src="https://checkout.flutterwave.com/v3.js"></script>
+
+    <script>
+        // ── Config ────────────────────────────────────────────────────────────
+        // Replace with your actual Flutterwave PUBLIC key from dashboard.flutterwave.com
+        const FLW_PUBLIC_KEY = "FLWPUBK_TEST-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-X";
+
+        let currentInvoice = null;
+        let selectedMethod = 'momo';
+
+        // ── Invoice Search ────────────────────────────────────────────────────
+        async function findInvoice() {
+            const val = document.getElementById('invoiceInput').value.trim().toUpperCase();
+            const errEl = document.getElementById('searchError');
+            const btn = document.getElementById('findBtn');
+
+            if (!val) { showErr('Please enter an invoice number.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            errEl.style.display = 'none';
+
+            try {
+                const snap = await db.collection('invoices').where('invoiceId', '==', val).get();
+                if (snap.empty) { showErr('Invoice not found. Please check the number and try again.'); return; }
+
+                currentInvoice = { ...snap.docs[0].data(), docId: snap.docs[0].id };
+                renderInvoice();
+            } catch (e) {
+                showErr('Connection error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-search"></i> Search';
+            }
+        }
+
+        function showErr(msg) {
+            const el = document.getElementById('searchError');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function renderInvoice() {
+            document.getElementById('dInvId').textContent = currentInvoice.invoiceId;
+            document.getElementById('dClientName').textContent = currentInvoice.clientName;
+            document.getElementById('dDesc').textContent = currentInvoice.description || 'Legal Services';
+            document.getElementById('dAmount').textContent = 'RWF ' + Number(currentInvoice.amount).toLocaleString();
+            document.getElementById('bankRef').textContent = currentInvoice.invoiceId;
+
+            const statusEl = document.getElementById('dStatus');
+            const isPaid = currentInvoice.status === 'paid';
+            statusEl.innerHTML = isPaid
+                ? '<span class="badge-paid"><i class="fa-solid fa-check-circle"></i> Paid</span>'
+                : '<span class="badge-unpaid"><i class="fa-solid fa-clock"></i> Unpaid</span>';
+
+            document.getElementById('paymentSection').style.display = isPaid ? 'none' : 'block';
+            document.getElementById('alreadyPaid').style.display = isPaid ? 'block' : 'none';
+            document.getElementById('invoiceSection').style.display = 'block';
+        }
+
+        function resetSearch() {
+            currentInvoice = null;
+            document.getElementById('invoiceInput').value = '';
+            document.getElementById('invoiceSection').style.display = 'none';
+            document.getElementById('searchError').style.display = 'none';
+        }
+
+        // ── Method Selection ──────────────────────────────────────────────────
+        function selectMethod(method) {
+            selectedMethod = method;
+            ['momo','airtel','card','bank'].forEach(m => {
+                document.getElementById('btn' + m.charAt(0).toUpperCase() + m.slice(1)).classList.remove('active');
+            });
+            document.getElementById('btn' + method.charAt(0).toUpperCase() + method.slice(1)).classList.add('active');
+
+            const bankPanel = document.getElementById('bankPanel');
+            const payBtn = document.getElementById('payNowBtn');
+
+            if (method === 'bank') {
+                bankPanel.style.display = 'block';
+                payBtn.style.display = 'none';
+            } else {
+                bankPanel.style.display = 'none';
+                payBtn.style.display = 'flex';
+            }
+        }
+
+        // ── Flutterwave Payment ───────────────────────────────────────────────
+        function initiatePayment() {
+            if (!currentInvoice) return;
+
+            const methodMap = {
+                momo:   'mobilemoneyrwanda',
+                airtel: 'mobilemoneyuganda', // Use correct Flutterwave code for Airtel RW
+                card:   'card'
+            };
+
+            // Convert RWF amount (Flutterwave accepts RWF natively)
+            const amount = Number(currentInvoice.amount);
+            const clientEmail = currentInvoice.email || 'client@kaltolawfirm.com';
+            const clientName  = currentInvoice.clientName || 'Kalto Client';
+
+            FlutterwaveCheckout({
+                public_key: FLW_PUBLIC_KEY,
+                tx_ref: `KALTO-${currentInvoice.invoiceId}-${Date.now()}`,
+                amount: amount,
+                currency: "RWF",
+                payment_options: selectedMethod === 'card' ? 'card' : 'mobilemoney',
+                customer: {
+                    email: clientEmail,
+                    name: clientName,
+                },
+                meta: {
+                    invoice_id: currentInvoice.invoiceId,
+                    firestore_doc_id: currentInvoice.docId,
+                },
+                customizations: {
+                    title: "KALTO LAW",
+                    description: `Payment for ${currentInvoice.invoiceId} — ${currentInvoice.description || 'Legal Services'}`,
+                    logo: "https://kalto-law.web.app/favicon.png",
+                },
+                callback: async function(response) {
+                    if (response.status === "successful" || response.status === "completed") {
+                        await handlePaymentSuccess(response);
+                    }
+                },
+                onclose: function() {
+                    console.log('Payment modal closed.');
+                }
+            });
+        }
+
+        // ── On Payment Success ────────────────────────────────────────────────
+        async function handlePaymentSuccess(response) {
+            try {
+                const btn = document.getElementById('payNowBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...';
+
+                // 1. Mark invoice as paid in Firestore
+                await db.collection('invoices').doc(currentInvoice.docId).update({
+                    status: 'paid',
+                    paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    flwTransactionId: response.transaction_id,
+                    flwTxRef: response.tx_ref,
+                    paymentMethod: response.payment_type || selectedMethod,
+                });
+
+                // 2. Record the payment transaction
+                await db.collection('payment_records').add({
+                    invoiceId: currentInvoice.invoiceId,
+                    clientName: currentInvoice.clientName,
+                    amount: currentInvoice.amount,
+                    currency: 'RWF',
+                    method: response.payment_type || selectedMethod,
+                    flwTransactionId: response.transaction_id,
+                    flwTxRef: response.tx_ref,
+                    status: 'successful',
+                    paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+
+                // 3. Show success screen
+                document.getElementById('invoiceSection').style.display = 'none';
+                document.getElementById('successState').style.display = 'block';
+
+            } catch (err) {
+                console.error('Error recording payment:', err);
+                alert('Payment was received but we had trouble updating your record. Please contact support with your transaction ID: ' + response.transaction_id);
+            }
+        }
+
+        // ── Auto-load if URL has invoice param ────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const inv = params.get('invoice');
+            if (inv) {
+                document.getElementById('invoiceInput').value = inv.toUpperCase();
+                findInvoice();
+            }
+            // Enter key triggers search
+            document.getElementById('invoiceInput').addEventListener('keydown', e => {
+                if (e.key === 'Enter') findInvoice();
+            });
+        });
+    </script>
+
+    <script src="js/main.js?v=1778353129677"></script>
+</body>
+</html>

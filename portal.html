@@ -1,1 +1,523 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><title></title><style>*{margin:0;padding:0}html,body{background:#fff;width:100%;height:100%}</style></head><body></body></html>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Portal — KALTO LAW</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#f0f2f7;min-height:100vh;color:#1d2939}
+
+        /* ─ Sidebar ─ */
+        .portal-shell{display:flex;min-height:100vh}
+        .sidebar{width:260px;background:linear-gradient(180deg,#0d1b35 0%,#1a2a4a 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+        .sidebar-brand{padding:28px 24px 20px;border-bottom:1px solid rgba(255,255,255,0.08)}
+        .sidebar-brand a{text-decoration:none;display:flex;align-items:center;gap:10px;color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700}
+        .sidebar-brand i{color:#c5a059;font-size:1.3rem}
+        .sidebar-brand .text-gold{color:#c5a059}
+        .sidebar-brand p{font-size:0.7rem;color:rgba(255,255,255,0.3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;margin-left:30px}
+        .sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+        .sidebar-nav a{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;color:rgba(255,255,255,0.55);text-decoration:none;font-size:0.9rem;font-weight:500;transition:all 0.25s;margin-bottom:4px}
+        .sidebar-nav a:hover{background:rgba(255,255,255,0.07);color:#fff}
+        .sidebar-nav a.active{background:rgba(197,160,89,0.18);color:#c5a059}
+        .sidebar-nav a i{width:18px;text-align:center;font-size:0.95rem}
+        .sidebar-user{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08)}
+        .sidebar-user .user-info{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+        .avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#c5a059,#a8853d);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1rem;flex-shrink:0;overflow:hidden}
+        .avatar img{width:100%;height:100%;object-fit:cover}
+        .user-name{font-size:0.85rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .user-email{font-size:0.72rem;color:rgba(255,255,255,0.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .btn-logout{display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(220,53,69,0.12);border:1px solid rgba(220,53,69,0.2);border-radius:8px;color:#ff6b7a;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;width:100%;justify-content:center}
+        .btn-logout:hover{background:rgba(220,53,69,0.2)}
+
+        /* ─ Main Content ─ */
+        .portal-main{margin-left:260px;flex:1;padding:32px;min-height:100vh}
+        .page-header{margin-bottom:28px}
+        .page-header h1{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;color:#0d1b35}
+        .page-header p{color:#667085;margin-top:4px;font-size:0.9rem}
+
+        /* ─ Stats Row ─ */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+        .stat-card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e4e7ec;display:flex;align-items:center;gap:14px}
+        .stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+        .stat-icon.gold{background:rgba(197,160,89,0.12);color:#c5a059}
+        .stat-icon.blue{background:rgba(13,27,53,0.08);color:#0d1b35}
+        .stat-icon.green{background:rgba(18,183,106,0.1);color:#12b76a}
+        .stat-icon.red{background:rgba(217,45,32,0.08);color:#d92d20}
+        .stat-card h3{font-size:1.4rem;font-weight:700;color:#0d1b35}
+        .stat-card p{font-size:0.78rem;color:#667085}
+
+        /* ─ Cards ─ */
+        .card{background:#fff;border-radius:16px;border:1px solid #e4e7ec;overflow:hidden;margin-bottom:24px}
+        .card-header{padding:20px 24px;border-bottom:1px solid #f2f4f7;display:flex;justify-content:space-between;align-items:center}
+        .card-header h3{font-size:1rem;font-weight:700;color:#0d1b35}
+        .card-body{padding:24px}
+        .card-empty{text-align:center;padding:40px 20px;color:#98a2b3}
+        .card-empty i{font-size:2.5rem;margin-bottom:12px;opacity:0.4;display:block}
+
+        /* ─ Table ─ */
+        table{width:100%;border-collapse:collapse}
+        th{padding:10px 16px;text-align:left;font-size:0.78rem;font-weight:700;color:#667085;text-transform:uppercase;letter-spacing:0.5px;background:#f9fafb}
+        td{padding:14px 16px;border-top:1px solid #f2f4f7;font-size:0.88rem;vertical-align:middle}
+
+        /* ─ Status Badges ─ */
+        .badge{display:inline-block;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:700;text-transform:uppercase}
+        .badge-initiated,.badge-pending{background:rgba(255,167,38,0.12);color:#b76e00}
+        .badge-review{background:rgba(13,27,53,0.08);color:#0d1b35}
+        .badge-approved,.badge-paid,.badge-confirmed,.badge-completed{background:rgba(18,183,106,0.1);color:#027a48}
+        .badge-rejected,.badge-cancelled,.badge-unpaid,.badge-overdue{background:rgba(217,45,32,0.08);color:#b42318}
+        .badge-closed{background:#f2f4f7;color:#667085}
+
+        /* ─ Form Controls ─ */
+        .form-group{margin-bottom:16px}
+        .form-group label{display:block;font-size:0.83rem;font-weight:600;color:#344054;margin-bottom:6px}
+        .form-control{width:100%;padding:11px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:0.9rem;font-family:'Inter',sans-serif;color:#1d2939;transition:border-color 0.2s;outline:none;background:#fff}
+        .form-control:focus{border-color:#c5a059;box-shadow:0 0 0 3px rgba(197,160,89,0.12)}
+        .form-control[readonly]{background:#f9fafb;color:#667085}
+        .btn-primary{background:linear-gradient(135deg,#c5a059,#a8853d);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
+        .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(197,160,89,0.35)}
+        .btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+        .btn-outline{background:transparent;border:1px solid #d0d5dd;color:#344054;padding:9px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s}
+        .btn-outline:hover{border-color:#c5a059;color:#c5a059}
+
+        /* ─ Chat messages ─ */
+        .message-bubble{margin-bottom:16px}
+        .message-bubble .meta{font-size:0.75rem;color:#98a2b3;margin-bottom:4px}
+        .bubble{padding:12px 16px;border-radius:12px;font-size:0.9rem;line-height:1.6;max-width:85%}
+        .bubble.client{background:#f9fafb;border:1px solid #e4e7ec;border-radius:12px 12px 12px 2px}
+        .bubble.admin{background:rgba(13,27,53,0.06);border:1px solid rgba(13,27,53,0.1);border-radius:12px 12px 2px 12px;margin-left:auto}
+        .badge-answered{background:rgba(18,183,106,0.1);color:#027a48;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:50px;text-transform:uppercase}
+        .badge-open{background:rgba(255,167,38,0.12);color:#b76e00;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:50px;text-transform:uppercase}
+
+        /* ─ Claim code input ─ */
+        .claim-box{background:rgba(197,160,89,0.06);border:1px dashed rgba(197,160,89,0.35);border-radius:10px;padding:16px;margin-bottom:20px}
+        .claim-box label{font-size:0.82rem;font-weight:700;color:#a8853d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px}
+        .claim-row{display:flex;gap:10px;align-items:center}
+        .claim-row input{flex:1;padding:10px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:0.9rem;font-family:'Inter',sans-serif;font-weight:700;letter-spacing:1px;outline:none}
+        .claim-row input:focus{border-color:#c5a059}
+
+        /* ─ Toast ─ */
+        .toast{position:fixed;bottom:24px;right:24px;background:#0d1b35;color:#fff;padding:12px 20px;border-radius:10px;font-size:0.88rem;font-weight:600;opacity:0;transition:opacity 0.3s;z-index:9999;pointer-events:none;border-left:3px solid #c5a059}
+        .toast.show{opacity:1}
+
+        /* ─ Mobile ─ */
+        @media(max-width:768px){
+            .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap}
+            .sidebar-brand{padding:16px 20px;width:100%}
+            .sidebar-nav{display:flex;flex-wrap:wrap;padding:8px 12px;width:100%}
+            .sidebar-nav a{padding:8px 12px;font-size:0.8rem;margin-bottom:4px}
+            .sidebar-user{width:100%;display:flex;gap:12px;align-items:center;padding:12px 20px}
+            .portal-shell{flex-direction:column}
+            .portal-main{margin-left:0;padding:20px}
+        }
+    </style>
+
+    <!-- Google Analytics GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', { send_page_view: true });
+      window.gaEvent = function(action, category, label, value) {
+        if (typeof gtag !== 'undefined') gtag('event', action, { event_category: category, event_label: label, value: value });
+      };
+    </script>
+</head>
+<body>
+<div class="portal-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <a href="index.html">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span>KALTO <span class="text-gold">LAW</span></span>
+            </a>
+            <p>Client Portal</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="active" data-tab="overview"><i class="fa-solid fa-house-chimney"></i> Overview</a>
+            <a href="#" data-tab="cases"><i class="fa-solid fa-folder-tree"></i> My Cases</a>
+            <a href="#" data-tab="invoices"><i class="fa-solid fa-file-invoice-dollar"></i> My Invoices</a>
+            <a href="#" data-tab="bookings"><i class="fa-solid fa-calendar-check"></i> Consultations</a>
+            <a href="#" data-tab="messages"><i class="fa-solid fa-comments"></i> Ask a Lawyer</a>
+            <a href="#" data-tab="uploads"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Documents</a>
+            <a href="#" data-tab="profile"><i class="fa-solid fa-user-gear"></i> My Profile</a>
+            <a href="#" data-tab="ratings"><i class="fa-solid fa-star"></i> Rate Experience</a>
+            <a href="#" data-tab="signatures"><i class="fa-solid fa-signature"></i> Sign Documents</a>
+        </nav>
+        <div class="sidebar-user">
+            <div class="user-info">
+                <div class="avatar" id="sidebarAvatar">?</div>
+                <div>
+                    <div class="user-name" id="sidebarName">Loading...</div>
+                    <div class="user-email" id="sidebarEmail"></div>
+                </div>
+            </div>
+            <a href="#" class="btn-logout" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="portal-main">
+
+        <!-- Overview Tab -->
+        <div id="overviewTab" class="tab-pane">
+            <div class="page-header">
+                <h1 id="welcomeTitle">Welcome back</h1>
+                <p>Here's a summary of everything happening with your legal matters.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa-solid fa-folder-open"></i></div>
+                    <div><h3 id="statCases">—</h3><p>Active Cases</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <div><h3 id="statUnpaid">—</h3><p>Unpaid Invoices</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon gold"><i class="fa-solid fa-calendar"></i></div>
+                    <div><h3 id="statBookings">—</h3><p>Upcoming Calls</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fa-solid fa-comment-dots"></i></div>
+                    <div><h3 id="statMessages">—</h3><p>Messages</p></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>My Recent Cases</h3></div>
+                <table><thead><tr><th>Case Code</th><th>Description</th><th>Status</th><th>Last Updated</th></tr></thead>
+                <tbody id="overviewCasesBody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#98a2b3"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr></tbody></table>
+            </div>
+        </div>
+
+        <!-- Cases Tab -->
+        <div id="casesTab" class="tab-pane" style="display:none">
+            <div class="page-header">
+                <h1>My Cases</h1>
+                <p>Track the status of all your legal matters in real time.</p>
+            </div>
+            <div class="claim-box">
+                <label><i class="fa-solid fa-link"></i> Link an Existing Case</label>
+                <div class="claim-row">
+                    <input type="text" id="claimCodeInput" placeholder="e.g. KL-AB12-1234" style="font-family:monospace;font-weight:700;letter-spacing:1px">
+                    <button class="btn-primary" onclick="claimCaseFromPortal()"><i class="fa-solid fa-plus"></i> Link Case</button>
+                </div>
+            </div>
+            <div class="card">
+                <table><thead><tr><th>Tracking Code</th><th>Case Matter</th><th>Status</th><th>Last Updated</th><th>Documents</th></tr></thead>
+                <tbody id="casesBody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- Invoices Tab -->
+        <div id="invoicesTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>My Invoices</h1><p>View and settle outstanding payments.</p></div>
+            <div class="card">
+                <table><thead><tr><th>Invoice ID</th><th>Description</th><th>Amount (RWF)</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="invoicesBody"></tbody></table>
+            </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div id="bookingsTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>Consultations</h1><p>Schedule your consultation using our interactive calendar.</p></div>
+
+            <div class="card" style="margin-bottom:24px">
+                <div class="card-header"><h3><i class="fa-solid fa-calendar-plus" style="color:#c5a059;margin-right:8px;"></i>Book a New Consultation</h3></div>
+                <div class="card-body">
+                    <!-- Service selector -->
+                    <div class="form-group" style="max-width:380px">
+                        <label>Service Type</label>
+                        <select class="form-control" id="bookService">
+                            <option>Corporate Law</option><option>Commercial Matters</option>
+                            <option>Real Estate & Planning</option><option>Family Matters</option>
+                            <option>Labour Law</option><option>Tax Law</option><option>ADR / Mediation</option>
+                        </select>
+                    </div>
+
+                    <!-- Calendar -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;flex-wrap:wrap;">
+                        <div>
+                            <label style="font-size:0.83rem;font-weight:600;color:#344054;margin-bottom:10px;display:block;">Select a Date</label>
+                            <!-- Calendar header -->
+                            <div style="background:#0d1b35;border-radius:14px;overflow:hidden;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+                                    <button id="calPrev" onclick="calNav(-1)" style="background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">‹</button>
+                                    <span id="calMonthLabel" style="color:#c5a059;font-weight:700;font-size:1rem;"></span>
+                                    <button id="calNext" onclick="calNav(1)" style="background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">›</button>
+                                </div>
+                                <!-- Day labels -->
+                                <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px;">
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.35);padding:6px 0;font-weight:700;">Sun</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(197,160,89,0.8);padding:6px 0;font-weight:700;">Mon</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(197,160,89,0.8);padding:6px 0;font-weight:700;">Tue</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(197,160,89,0.8);padding:6px 0;font-weight:700;">Wed</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(197,160,89,0.8);padding:6px 0;font-weight:700;">Thu</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(197,160,89,0.8);padding:6px 0;font-weight:700;">Fri</div>
+                                    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.35);padding:6px 0;font-weight:700;">Sat</div>
+                                </div>
+                                <!-- Calendar grid -->
+                                <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:4px 12px 16px;"></div>
+                            </div>
+                            <p id="calSelectedLabel" style="margin-top:10px;font-size:0.85rem;color:#667085;text-align:center;min-height:20px;"></p>
+                        </div>
+
+                        <!-- Time slots + notes -->
+                        <div id="timeSlotSection" style="display:none;">
+                            <label style="font-size:0.83rem;font-weight:600;color:#344054;margin-bottom:10px;display:block;">Available Time Slots</label>
+                            <div id="timeSlots" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"></div>
+                            <div class="form-group">
+                                <label>Brief Notes</label>
+                                <input type="text" class="form-control" id="bookNotes" placeholder="Describe your matter briefly...">
+                            </div>
+                            <button class="btn-primary" id="submitBookingBtn" onclick="submitBooking()" disabled>
+                                <i class="fa-solid fa-calendar-check"></i> Confirm Appointment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>My Appointments</h3></div>
+                <table><thead><tr><th>Service</th><th>Date & Time</th><th>Status</th></tr></thead>
+                <tbody id="bookingsBody"></tbody></table>
+            </div>
+        </div>
+
+
+        <!-- Messages / Ask a Lawyer Tab -->
+        <div id="messagesTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>Ask a Lawyer</h1><p>Send a question to our legal team. We reply within 24 hours.</p></div>
+            <div class="card" style="margin-bottom:24px">
+                <div class="card-header"><h3>New Question</h3></div>
+                <div class="card-body">
+                    <div class="form-group"><label>Your Question</label>
+                        <textarea class="form-control" id="msgQuestion" rows="4" placeholder="Describe your legal question in detail..."></textarea></div>
+                    <button class="btn-primary" onclick="submitMessage()"><i class="fa-solid fa-paper-plane"></i> Send to Legal Team</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Conversation History</h3></div>
+                <div class="card-body" id="messagesBody" style="padding:16px"></div>
+            </div>
+        </div>
+
+        <!-- Uploads Tab -->
+        <div id="uploadsTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>Upload Documents</h1><p>Securely upload files for your case files.</p></div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group"><label>Case Tracking Code</label>
+                        <input type="text" class="form-control" id="uploadCase" placeholder="e.g. KL-AB12-1234" style="font-family:monospace;font-weight:700;letter-spacing:1px;max-width:300px"></div>
+                    <div class="form-group"><label>Select File (PDF, DOCX, JPG — max 10MB)</label>
+                        <input type="file" class="form-control" id="uploadFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="max-width:400px"></div>
+                    <div id="uploadProgress" style="height:6px;background:#e4e7ec;border-radius:3px;margin-bottom:16px;display:none"><div id="uploadBar" style="height:100%;background:#c5a059;border-radius:3px;width:0;transition:width 0.3s"></div></div>
+                    <button class="btn-primary" onclick="submitUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Securely</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ratings Tab -->
+        <div id="ratingsTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>Rate Your Experience</h1><p>Help us improve by sharing your feedback after case completion.</p></div>
+            <div id="ratingsBody"></div>
+        </div>
+
+        <!-- e-Signature Tab -->
+        <div id="signaturesTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>Sign Documents</h1><p>Documents requiring your signature from our legal team.</p></div>
+            <div id="signatureRequestsBody"></div>
+
+            <!-- Signature Pad Modal -->
+            <div id="sigPadOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+                <div style="background:#fff;border-radius:16px;max-width:560px;width:92%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <h3 style="margin:0 0 6px;color:#0d1b35;font-family:'Playfair Display',serif;">Sign Document</h3>
+                    <p id="sigDocName" style="color:#667085;font-size:0.88rem;margin:0 0 16px;"></p>
+                    <div style="border:2px dashed #c5a059;border-radius:10px;background:#fafbfc;position:relative;">
+                        <canvas id="sigCanvas" width="500" height="200" style="width:100%;cursor:crosshair;touch-action:none;display:block;border-radius:8px;"></canvas>
+                    </div>
+                    <p style="font-size:0.75rem;color:#98a2b3;margin:6px 0 16px;">Draw your signature above using mouse or touch.</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn-primary" id="sigSubmitBtn" onclick="submitSignature()"><i class="fa-solid fa-check"></i> Confirm & Sign</button>
+                        <button class="btn-outline" onclick="clearSigPad()"><i class="fa-solid fa-eraser"></i> Clear</button>
+                        <button class="btn-outline" onclick="document.getElementById('sigPadOverlay').style.display='none'" style="margin-left:auto;color:#667085;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Profile Tab -->
+        <div id="profileTab" class="tab-pane" style="display:none">
+            <div class="page-header"><h1>My Profile</h1><p>Manage your account details.</p></div>
+            <div class="card" style="max-width:520px">
+                <div class="card-body">
+                    <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="profileName"></div>
+                    <div class="form-group"><label>Email Address</label><input type="email" class="form-control" id="profileEmail" readonly></div>
+                    <div class="form-group"><label>Phone Number</label><input type="tel" class="form-control" id="profilePhone" placeholder="+250 790 000 000"></div>
+                    <button class="btn-primary" onclick="saveProfile()"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+<script src="js/portal-auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/portal-dashboard.js?v=1778325311342"></script>
+
+
+<script>
+    // ── Tab navigation ──────────────────────────────────────────────────────
+    const navLinks = document.querySelectorAll('.sidebar-nav a[data-tab]');
+    const panes = document.querySelectorAll('.tab-pane');
+    navLinks.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const tab = link.getAttribute('data-tab');
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            panes.forEach(p => p.style.display = 'none');
+            const pane = document.getElementById(tab + 'Tab');
+            if (pane) pane.style.display = '';
+            if (tab === 'cases') loadCases();
+            if (tab === 'invoices') loadInvoices();
+            if (tab === 'bookings') { loadBookings(); renderCalendar(); }
+            if (tab === 'messages') loadMessages();
+            if (tab === 'uploads') prefillUploadCase();
+            if (tab === 'ratings') loadRatings();
+            if (tab === 'signatures') loadSignatureRequests();
+        });
+    });
+    document.getElementById('logoutBtn').addEventListener('click', e => {
+        e.preventDefault();
+        firebase.auth().signOut().then(() => window.location.href = 'index.html');
+    });
+
+    // ── Interactive Calendar ────────────────────────────────────────────────
+    const TIME_SLOTS = ['09:00 AM','10:00 AM','11:00 AM','12:00 PM','02:00 PM','03:00 PM','04:00 PM','05:00 PM'];
+    let calYear, calMonth, calSelectedDate = null, calSelectedTime = null;
+
+    function initCalendar() {
+        const now = new Date();
+        calYear = now.getFullYear();
+        calMonth = now.getMonth();
+    }
+
+    function renderCalendar() {
+        if (!document.getElementById('calGrid')) return;
+        if (calYear === undefined) initCalendar();
+        const now = new Date();
+        const firstDay = new Date(calYear, calMonth, 1).getDay();
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+        document.getElementById('calMonthLabel').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+        const grid = document.getElementById('calGrid');
+        grid.innerHTML = '';
+
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            grid.innerHTML += '<div></div>';
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(calYear, calMonth, d);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isPast = date < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isSelected = calSelectedDate === dateStr;
+            const isToday = date.toDateString() === now.toDateString();
+
+            let styles = 'text-align:center;padding:8px 4px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.15s;';
+            if (isWeekend || isPast) {
+                styles += 'color:rgba(255,255,255,0.2);cursor:not-allowed;';
+            } else if (isSelected) {
+                styles += 'background:#c5a059;color:#fff;box-shadow:0 2px 8px rgba(197,160,89,0.5);';
+            } else if (isToday) {
+                styles += 'color:#c5a059;border:1px solid rgba(197,160,89,0.5);';
+            } else {
+                styles += 'color:rgba(255,255,255,0.75);hover:background:rgba(255,255,255,0.1);';
+            }
+
+            const cell = document.createElement('div');
+            cell.style.cssText = styles;
+            cell.textContent = d;
+            if (!isWeekend && !isPast) {
+                cell.addEventListener('mouseenter', () => { if (!isSelected) cell.style.background = 'rgba(197,160,89,0.2)'; });
+                cell.addEventListener('mouseleave', () => { if (!isSelected) cell.style.background = ''; });
+                cell.addEventListener('click', () => selectCalDate(dateStr, date));
+            }
+            grid.appendChild(cell);
+        }
+    }
+
+    function selectCalDate(dateStr, dateObj) {
+        calSelectedDate = dateStr;
+        calSelectedTime = null;
+        renderCalendar();
+
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        document.getElementById('calSelectedLabel').textContent =
+            `📅 ${dayNames[dateObj.getDay()]}, ${monthNames[dateObj.getMonth()]} ${dateObj.getDate()} ${dateObj.getFullYear()}`;
+
+        // Show time slots
+        const section = document.getElementById('timeSlotSection');
+        const slotsEl = document.getElementById('timeSlots');
+        section.style.display = 'block';
+        slotsEl.innerHTML = '';
+
+        TIME_SLOTS.forEach(slot => {
+            const btn = document.createElement('button');
+            btn.textContent = slot;
+            btn.style.cssText = 'padding:10px;border:1.5px solid #e4e7ec;border-radius:8px;background:#fff;font-size:0.83rem;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:Inter,sans-serif;color:#344054;';
+            btn.addEventListener('mouseenter', () => { if (calSelectedTime !== slot) btn.style.background = '#fffbf4'; });
+            btn.addEventListener('mouseleave', () => { if (calSelectedTime !== slot) btn.style.background = '#fff'; });
+            btn.addEventListener('click', () => {
+                calSelectedTime = slot;
+                document.querySelectorAll('#timeSlots button').forEach(b => {
+                    b.style.background = '#fff';
+                    b.style.borderColor = '#e4e7ec';
+                    b.style.color = '#344054';
+                });
+                btn.style.background = 'linear-gradient(135deg,#c5a059,#a8853d)';
+                btn.style.borderColor = '#c5a059';
+                btn.style.color = '#fff';
+                document.getElementById('submitBookingBtn').disabled = false;
+            });
+            slotsEl.appendChild(btn);
+        });
+    }
+
+    function calNav(dir) {
+        calMonth += dir;
+        if (calMonth > 11) { calMonth = 0; calYear++; }
+        if (calMonth < 0) { calMonth = 11; calYear--; }
+        renderCalendar();
+    }
+
+    // Override submitBooking to use calendar values
+    window._calBookingDate = () => calSelectedDate;
+    window._calBookingTime = () => calSelectedTime;
+</script>
+
+</body>
+</html>

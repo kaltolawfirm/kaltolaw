@@ -1,1 +1,42 @@
+:root {
+    /* Colors */
+    --color-primary: #1B2A41;       /* Navy Charcoal */
+    --color-secondary: #2C3E50;     /* Slate Blue */
+    --color-accent: #C5A059;        /* Muted Gold */
+    --color-accent-hover: #b08d4d;  /* Darker Gold for hover */
+    --color-white: #FFFFFF;
+    --color-surface: #F4F4F4;       /* Light Silver */
+    --color-text-main: #222222;     /* Dark Grey */
+    --color-text-light: #666666;    /* Medium Grey */
+    --color-border: #e0e0e0;
+    --color-error: #d32f2f;
+    --color-success: #388e3c;
 
+    /* Fonts */
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+    --spacing-section: 80px;
+
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+}
