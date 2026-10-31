@@ -1,28 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Production Enhancements (Injected UI) ---
-    // 1. Inject Preloader
-    if (!document.getElementById('global-preloader')) {
-        const preloader = document.createElement('div');
-        preloader.id = 'global-preloader';
-        preloader.innerHTML = '<div class="loader-spinner"></div>';
-        document.body.prepend(preloader);
-        
-        // Hide after 1s or on load
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                preloader.classList.add('hidden');
-                setTimeout(() => preloader.remove(), 500);
-            }, 500);
-        });
-        // Fallback
-        setTimeout(() => {
-            if(document.getElementById('global-preloader')) {
-                preloader.classList.add('hidden');
-                setTimeout(() => preloader.remove(), 500);
-            }
-        }, 2000);
-    }
-
     // 2. Inject Back to Top Button
     if (!document.getElementById('backToTopBtn')) {
         const btn = document.createElement('button');
@@ -185,8 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CMS Logic (Firebase Compat for Local File Support) ---
     async function loadCMSContent() {
-        const cmsElements = document.querySelectorAll('[data-cms-id]');
-        const blogGrid = document.querySelector('.blog-grid-container');
+        // Tagged text (data-cms) is applied by js/cms.js, including older website_content edits
+        const cmsElements = document.querySelectorAll('[data-cms-id]:not([data-cms])');
+        const blogGrid = document.querySelector('.blog-grid-container, #dynamic-blog-grid');
         if (cmsElements.length === 0 && !blogGrid) return;
 
         console.log('CMS: Initializing...');
@@ -202,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const script = document.createElement('script');
                 script.src = src;
                 script.onload = resolve;
+                script.onerror = resolve; // offline/blocked: carry on so the page can show a fallback
                 document.head.appendChild(script);
             });
         }
@@ -242,37 +221,79 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Load Legal Insights (Blog) - dynamic section
         const dynamicBlogGrid = document.getElementById('dynamic-blog-grid');
         const dynamicSection = document.getElementById('dynamic-insights-section');
-        if (dynamicBlogGrid && window.location.pathname.includes('blog.html')) {
+        if (dynamicBlogGrid && dynamicSection) {
             try {
                 const querySnapshot = await db.collection("insights").orderBy("createdAt", "desc").get();
-                if (!querySnapshot.empty) {
+                if (querySnapshot.empty) {
+                    showBlogMessage('fa-regular fa-newspaper', 'No articles published yet. Check back soon for legal insights from our attorneys.');
+                } else {
                     dynamicSection.style.display = 'block';
                     dynamicBlogGrid.innerHTML = '';
+                    // Rise in like the rest of the page when its intro animations are on (js/kh-reveal.js)
+                    const animate = document.documentElement.classList.contains('kh-js');
+                    let index = 0;
                     querySnapshot.forEach((doc) => {
                         const post = doc.data();
-                        const coverSrc = post.coverImage || 'images/blog-img-fallback.jpg';
+                        const coverSrc = post.coverImage || 'images/blog-img-1.jpg';
                         const article = document.createElement('article');
                         article.className = 'blog-card';
+                        const posted = post.createdAt && post.createdAt.toDate
+                            ? post.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '';
                         article.innerHTML = `
                             <div class="blog-image">
-                                <img src="${coverSrc}" alt="${post.title}" style="width:100%;height:200px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0;" onerror="this.src='images/blog-img-fallback.jpg'">
+                                <img src="${coverSrc}" alt="" style="width:100%;height:200px;object-fit:cover;" onerror="this.onerror=null;this.src='images/blog-img-1.jpg'">
                             </div>
                             <div class="blog-content">
-                                <div class="blog-meta"><i class="fa-regular fa-calendar"></i> <span>${post.category || 'Legal Insight'}</span></div>
+                                <div class="blog-meta"><span>${post.category || 'Legal Insight'}</span></div>
                                 <h3 class="mb-sm"><a href="blog-post.html?id=${doc.id}" class="text-navy">${post.title}</a></h3>
                                 <p>${post.description || ''}</p>
-                                <a href="blog-post.html?id=${doc.id}" class="text-link"><span>Read Article</span> <i class="fa-solid fa-arrow-right"></i></a>
+                                <div class="blog-foot">
+                                    <span class="blog-date">${posted}</span>
+                                    <span class="blog-stat" title="${post.views || 0} views"><i class="fa-regular fa-eye" aria-hidden="true"></i> ${post.views || 0}<span class="kh-sr-only"> views</span></span>
+                                    <span class="blog-stat" title="${post.likes || 0} likes"><i class="fa-regular fa-heart" aria-hidden="true"></i> ${post.likes || 0}<span class="kh-sr-only"> likes</span></span>
+                                    <span class="blog-stat" title="${post.comments || 0} comments"><i class="fa-regular fa-comment" aria-hidden="true"></i> ${post.comments || 0}<span class="kh-sr-only"> comments</span></span>
+                                </div>
                             </div>
                         `;
+                        if (animate) {
+                            article.setAttribute('data-reveal', 'up');
+                            article.style.setProperty('--kh-delay', (index % 3) * 200 + 'ms');
+                        }
+                        index++;
                         dynamicBlogGrid.appendChild(article);
                     });
+                    if (animate) {
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                            dynamicBlogGrid.querySelectorAll('[data-reveal]').forEach(a => a.classList.add('is-in'));
+                        }));
+                    }
                 }
             } catch (e) { console.log("CMS: Error loading blog posts", e); }
         }
 
     }
 
-    loadCMSContent();
+    // Legal insights shows placeholder cards while the admin's posts load. If
+    // they can't load (offline, error), the placeholders become a short note.
+    function showBlogMessage(icon, text) {
+        const grid = document.getElementById('dynamic-blog-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        const note = document.createElement('p');
+        note.className = 'ka-blog-empty';
+        note.innerHTML = '<i class="' + icon + '" aria-hidden="true"></i> ';
+        note.appendChild(document.createTextNode(text));
+        grid.appendChild(note);
+    }
+    function settleDynamicBlog() {
+        const grid = document.getElementById('dynamic-blog-grid');
+        if (grid && grid.querySelector('.kh-sk-card')) {
+            showBlogMessage('fa-solid fa-wifi', 'Articles could not be loaded right now. Please refresh the page or try again later.');
+        }
+    }
+    loadCMSContent().finally(settleDynamicBlog);
+    setTimeout(settleDynamicBlog, 10000);
 
     // --- Tawk.to Live Chat (Temporarily Removed) ---
     // User requested removal as it overlaps with UI elements like the Send Message button.

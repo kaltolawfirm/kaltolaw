@@ -553,9 +553,16 @@ exports.notifyOnInvoicePaid = functions.firestore
 // ─── FUNCTION 7: Callable — Send Email Campaign ───────────────────────────────
 exports.sendEmailCampaign = functions.https.onCall(async (data, context) => {
 
-    // ── Auth guard: only authenticated admins ──────────────────────────────
+    // ── Auth guard: only staff accounts (client portal users are signed in too) ──
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "You must be signed in to send campaigns.");
+    }
+    // Same staff list as isAdmin() in firestore.rules; override with ADMIN_EMAILS in functions/.env
+    const staffEmails = (process.env.ADMIN_EMAILS || "info.blaw223@yahoo.com")
+        .split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+    const callerEmail = String(context.auth.token.email || "").toLowerCase();
+    if (!staffEmails.includes(callerEmail)) {
+        throw new functions.https.HttpsError("permission-denied", "Only staff accounts can send campaigns.");
     }
 
     // ── Rate limit: max 5 campaign sends per admin per minute ──────────────
@@ -649,4 +656,128 @@ exports.sendEmailCampaign = functions.https.onCall(async (data, context) => {
 
     console.log(`[CAMPAIGN] Done — Sent: ${sent}, Failed: ${failed}, Total: ${recipients.length}`);
     return { success: true, sent, failed, total: recipients.length };
+});
+
+// ─── FUNCTION 8: Callable — Look up an invoice for pay.html ──────────────────
+// Visitors don't read the invoices collection directly (the rules don't allow it);
+// this returns only what the payment page shows, for one invoice number.
+const _lookupHits = new Map();
+function tooManyLookups(key, max, windowMs) {
+    const now = Date.now();
+    const e = _lookupHits.get(key);
+    if (!e || now - e.first > windowMs) { _lookupHits.set(key, { n: 1, first: now }); return false; }
+    e.n++;
+    return e.n > max;
+}
+
+exports.lookupInvoice = functions.https.onCall(async (data, context) => {
+    const ip = (context.rawRequest && context.rawRequest.ip) || "unknown";
+    if (tooManyLookups("lookup_" + ip, 20, 60 * 1000)) {
+        throw new functions.https.HttpsError("resource-exhausted", "Too many searches. Please wait a minute and try again.");
+    }
+    const invoiceId = String((data && data.invoiceId) || "").trim().toUpperCase();
+    if (!/^[A-Z0-9-]{3,40}$/.test(invoiceId)) {
+        throw new functions.https.HttpsError("invalid-argument", "Please enter a valid invoice number.");
+    }
+    const snap = await admin.firestore().collection("invoices").where("invoiceId", "==", invoiceId).limit(1).get();
+    if (snap.empty) return { found: false };
+    const inv = snap.docs[0].data();
+    return {
+        found: true,
+        docId: snap.docs[0].id,
+        invoiceId: inv.invoiceId,
+        clientName: inv.clientName || "",
+        description: inv.service || inv.description || "Legal services",
+        amount: Number(inv.amount || 0),
+        currency: "RWF",
+        status: inv.status === "paid" ? "paid" : "pending"
+    };
+});
+
+// ─── FUNCTION 9: Callable — Verify a Flutterwave payment and mark the invoice paid ──
+// The invoice is only marked paid after Flutterwave confirms the transaction:
+// successful, in RWF, for at least the invoice amount, and made for this invoice
+// (tx_ref "KALTO-<invoiceId>-..."). Each transaction can settle one invoice only.
+// Needs FLW_SECRET_KEY in functions/.env (Flutterwave dashboard > Settings > API keys).
+exports.verifyInvoicePayment = functions.https.onCall(async (data, context) => {
+    const docId = String((data && data.docId) || "");
+    const transactionId = String((data && data.transactionId) || "");
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(docId) || !/^\d{1,20}$/.test(transactionId)) {
+        throw new functions.https.HttpsError("invalid-argument", "Missing invoice or transaction.");
+    }
+    if (tooManyLookups("verify_" + transactionId, 5, 60 * 1000)) {
+        throw new functions.https.HttpsError("resource-exhausted", "Please wait a moment and try again.");
+    }
+    const secret = process.env.FLW_SECRET_KEY;
+    if (!secret) {
+        console.error("FLW_SECRET_KEY is not set; cannot verify payments.");
+        throw new functions.https.HttpsError("failed-precondition", "Online payment is not configured yet.");
+    }
+
+    const db = admin.firestore();
+    const invoiceRef = db.collection("invoices").doc(docId);
+    const invoiceSnap = await invoiceRef.get();
+    if (!invoiceSnap.exists) throw new functions.https.HttpsError("not-found", "Invoice not found.");
+    const invoice = invoiceSnap.data();
+    if (invoice.status === "paid") return { status: "paid", alreadyPaid: true };
+
+    // Ask Flutterwave directly; never trust what the browser reports
+    let tx;
+    try {
+        const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transactionId}/verify`, {
+            headers: { Authorization: `Bearer ${secret}` }
+        });
+        const body = await res.json();
+        if (!res.ok || body.status !== "success") throw new Error(body.message || `HTTP ${res.status}`);
+        tx = body.data;
+    } catch (err) {
+        console.error("Flutterwave verification failed:", err);
+        throw new functions.https.HttpsError("unavailable", "We could not confirm the payment with Flutterwave. Please contact us with your transaction ID.");
+    }
+
+    const problems = [];
+    if (tx.status !== "successful") problems.push(`status ${tx.status}`);
+    if (tx.currency !== "RWF") problems.push(`currency ${tx.currency}`);
+    if (!(Number(tx.amount) >= Number(invoice.amount || 0))) problems.push(`amount ${tx.amount} < ${invoice.amount}`);
+    if (!String(tx.tx_ref || "").startsWith(`KALTO-${invoice.invoiceId}-`)) problems.push(`tx_ref ${tx.tx_ref}`);
+    if (problems.length) {
+        console.warn(`[PAYMENT] Rejected transaction ${transactionId} for invoice ${invoice.invoiceId}: ${problems.join(", ")}`);
+        throw new functions.https.HttpsError("failed-precondition", "This payment does not match the invoice. Please contact us with your transaction ID.");
+    }
+
+    // Record once per transaction; the payment record id makes this idempotent
+    const recordRef = db.collection("payment_records").doc(`flw-${transactionId}`);
+    const result = await db.runTransaction(async (t) => {
+        const [inv, rec] = await Promise.all([t.get(invoiceRef), t.get(recordRef)]);
+        if (rec.exists) {
+            return rec.data().invoiceDocId === docId ? "paid" : "used";
+        }
+        if (inv.data().status === "paid") return "paid";
+        const paidAt = admin.firestore.FieldValue.serverTimestamp();
+        t.update(invoiceRef, {
+            status: "paid",
+            paidAt,
+            paymentMethod: tx.payment_type || "flutterwave",
+            flwTransactionId: String(tx.id),
+            flwTxRef: tx.tx_ref
+        });
+        t.set(recordRef, {
+            invoiceId: invoice.invoiceId,
+            invoiceDocId: docId,
+            clientName: invoice.clientName || "",
+            amount: Number(tx.amount),
+            currency: tx.currency,
+            method: tx.payment_type || "flutterwave",
+            flwTransactionId: String(tx.id),
+            flwTxRef: tx.tx_ref,
+            customerEmail: (tx.customer && tx.customer.email) || "",
+            status: "successful",
+            paidAt
+        });
+        return "paid";
+    });
+    if (result === "used") {
+        throw new functions.https.HttpsError("already-exists", "This transaction has already been used for another invoice.");
+    }
+    return { status: "paid" };
 });

@@ -1,0 +1,27 @@
+# Dependencies and backend code (not part of the static site)
+node_modules
+functions
+package.json
+package-lock.json
+
+# Firebase project config and rules
+.firebase
+.firebaserc
+firebase.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+*.log
+
+# One-off maintenance scripts in the repo root
+/add_jspdf.js
+/cache_bust.js
+/check_links.js
+/check_links2.js
+/fix*.js
+/fix_contact_submit.py
+/replace_text.js
+/update_*.js
+
+# Content tagging tool (run locally, not part of the site)
+/tools
