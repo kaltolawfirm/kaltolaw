@@ -71,9 +71,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- UI HELPERS ---
+        // Escape anything typed by clients or staff before it goes into innerHTML.
+        const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        window.esc = esc;
+
+        // One status badge style across the dashboard (.kd-chip in css/kh-admin.css).
+        const STATUS_TONES = {
+            unread: ['New', 'warn'], read: ['Read', 'neutral'], replied: ['Replied', 'good'], approved: ['Approved', 'good'],
+            pending: ['Pending', 'warn'], confirmed: ['Confirmed', 'good'], completed: ['Completed', 'neutral'], cancelled: ['Cancelled', 'bad'],
+            initiated: ['Initiated', 'neutral'], review: ['In Review', 'warn'], rejected: ['Rejected', 'bad'], closed: ['Closed', 'good'], done: ['Done', 'good'],
+            paid: ['Paid', 'good']
+        };
+        function statusChip(status) {
+            const key = String(status || 'pending').toLowerCase();
+            const [label, tone] = STATUS_TONES[key] || [status || 'Pending', 'neutral'];
+            return `<span class="kd-chip ${tone}">${esc(label)}</span>`;
+        }
+        window.statusChip = statusChip;
+        function emptyRow(cols, icon, text) {
+            return `<tr class="kd-empty-row"><td colspan="${cols}"><div class="kd-empty"><i class="fa-solid ${icon}" aria-hidden="true"></i>${esc(text)}</div></td></tr>`;
+        }
+        function errorRow(cols, text) {
+            return `<tr class="kd-empty-row"><td colspan="${cols}"><div class="kd-empty is-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>${esc(text)}</div></td></tr>`;
+        }
+        // Sortable date cell value (see js/admin-table-tools.js)
+        const ts = v => v && typeof v.toMillis === 'function' ? v.toMillis() : (v ? new Date(v).getTime() || 0 : 0);
+
         function showToast(message, type = 'success') {
             const icon = type === 'error' ? '<i class="fa-solid fa-circle-exclamation" style="color: #ff4444;"></i>' : '<i class="fa-solid fa-circle-check" style="color: var(--color-accent);"></i>';
-            toast.innerHTML = `${icon} ${message}`;
+            toast.innerHTML = `${icon} ${esc(message)}`;
             toast.className = type === 'error' ? 'show error' : 'show';
             setTimeout(() => toast.className = '', 4000);
         }
@@ -86,7 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- AUTHENTICATION ---
+        const isStaff = user => !window.KL_STAFF_EMAILS || window.KL_STAFF_EMAILS.includes(String(user.email || '').toLowerCase());
         auth.onAuthStateChanged((user) => {
+            if (user && !isStaff(user)) {
+                // Client portal accounts can sign in to Firebase but are not staff
+                auth.signOut();
+                loginError.textContent = 'This account is not a staff account. Clients can sign in to their portal instead.';
+                loginError.style.display = 'block';
+                return;
+            }
             if (user) {
                 loginView.style.display = 'none';
                 dashboardView.style.display = 'block';
@@ -129,12 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
         function switchTab(tabName) {
             const titleMap = {
                 'overview': 'Dashboard Overview',
-                'content': 'Website Content Editor',
+                'content': 'Website Editor',
                 'blog': 'Legal Insights Manager',
                 'documents': 'Case Documents',
                 'messages': 'Client Messages',
                 'appointments': 'Consultation Appointments',
                 'cases': 'Legal Case Manager',
+                'tasks': 'Task Board',
                 'billing': 'Billing',
                 'uploads': 'Client Uploads',
                 'lawyerinbox': 'Ask a Lawyer — Inbox',
@@ -194,25 +229,30 @@ document.addEventListener('DOMContentLoaded', () => {
         async function loadInitialData() {
             try {
                 // ── Parallel-fetch all collections ──────────────────────────
+                // Each read is independent: a collection that fails (rules,
+                // missing index) counts as empty instead of blanking the overview.
+                const EMPTY = { size: 0, empty: true, docs: [], forEach() {} };
+                const safe = (q, name) => q.get().catch(err => { console.warn('Overview: could not read ' + name, err); return EMPTY; });
                 const [
-                    insightsSnap, vaultSnap, casesSnap, messagesSnap,
-                    appointmentsSnap, invoicesSnap, clientsSnap, uploadsSnap, ratingsSnap
+                    insightsSnap, casesSnap, messagesSnap,
+                    appointmentsSnap, invoicesSnap, clientsSnap, uploadsSnap, ratingsSnap, tasksSnap
                 ] = await Promise.all([
-                    db.collection('insights').get(),
-                    db.collection('documents').get(),
-                    db.collection('cases').get(),
-                    db.collection('messages').orderBy('createdAt','desc').get(),
-                    db.collection('appointments').get(),
-                    db.collection('invoices').get(),
-                    db.collection('users').get(),
-                    db.collection('client_uploads').get(),
-                    db.collection('ratings').get(),
+                    safe(db.collection('insights'), 'insights'),
+                    safe(db.collection('cases'), 'cases'),
+                    // Client messages are the website contact form enquiries (Client Messages tab)
+                    safe(db.collection('enquiries').orderBy('createdAt','desc'), 'enquiries'),
+                    safe(db.collection('appointments'), 'appointments'),
+                    safe(db.collection('invoices'), 'invoices'),
+                    safe(db.collection('users'), 'users'),
+                    safe(db.collection('client_uploads'), 'client_uploads'),
+                    safe(db.collection('ratings'), 'ratings'),
+                    safe(db.collection('tasks'), 'tasks'),
                 ]);
 
                 // ── Compute KPIs ────────────────────────────────────────────
                 const totalCases   = casesSnap.size;
-                const openCases    = casesSnap.docs.filter(d => !['Closed','Completed','closed','completed'].includes(d.data().status)).length;
-                const unreadMsgs   = messagesSnap.docs.filter(d => d.data().status !== 'answered').length;
+                const openCases    = casesSnap.docs.filter(d => !['closed','completed','done'].includes(String(d.data().status || '').toLowerCase())).length;
+                const unreadMsgs   = messagesSnap.docs.filter(d => (d.data().status || 'unread') === 'unread').length;
                 const pendingAppts = appointmentsSnap.docs.filter(d => ['Pending','pending'].includes(d.data().status)).length;
                 const totalClients = clientsSnap.size;
                 const totalUploads = uploadsSnap.size;
@@ -235,103 +275,219 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const ratingDisplay = ratingsSnap.size > 0 ? `${avgRating} ★` : 'No ratings';
 
-                // ── Render Analytics Overview HTML ──────────────────────────
+                // ── Render Analytics Overview (layout: css/kh-admin.css .kd-*) ──
                 const overviewTab = document.getElementById('overviewTab');
                 if (overviewTab) {
+                    const rwf = n => 'RWF ' + Math.round(n).toLocaleString();
+                    const toDate = v => v && typeof v.toDate === 'function' ? v.toDate() : (v ? new Date(v) : null);
+
+                    // Revenue per month, last 6 months (paid vs pending), from invoice createdAt
+                    const months = [];
+                    const now = new Date();
+                    for (let i = 5; i >= 0; i--) {
+                        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        months.push({ key: d.getFullYear() + '-' + d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'short' }), paid: 0, pending: 0 });
+                    }
+                    invoicesSnap.docs.forEach(d => {
+                        const inv = d.data(); const dt = toDate(inv.createdAt); if (!dt) return;
+                        const m = months.find(x => x.key === dt.getFullYear() + '-' + dt.getMonth()); if (!m) return;
+                        if (inv.status === 'paid') m.paid += Number(inv.amount) || 0; else m.pending += Number(inv.amount) || 0;
+                    });
+                    // Line chart: paid (solid, filled) and pending (dashed) per month
+                    const W = 420, H = 190, padL = 40, padR = 10, padT = 12, padB = 24;
+                    const maxV = Math.max(1, ...months.map(m => Math.max(m.paid, m.pending)));
+                    const niceMax = (() => { const p = Math.pow(10, Math.floor(Math.log10(maxV))); return Math.ceil(maxV / p) * p; })();
+                    const X = i => padL + i * (W - padL - padR) / (months.length - 1);
+                    const Y = v => padT + (1 - v / niceMax) * (H - padT - padB);
+                    const short = v => v >= 1e6 ? (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'K' : String(v);
+                    const pts = key => months.map((m, i) => [X(i), Y(m[key])]);
+                    const line = arr => arr.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+                    const paidPts = pts('paid');
+                    let grid = '';
+                    for (let g = 0; g <= 3; g++) {
+                        const v = niceMax * g / 3, y = Y(v).toFixed(1);
+                        grid += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" class="kd-grid"/><text x="${padL - 8}" y="${y}" class="kd-axis" text-anchor="end" dominant-baseline="middle">${short(v)}</text>`;
+                    }
+                    const xLabels = months.map((m, i) => `<text x="${X(i).toFixed(1)}" y="${H - 6}" class="kd-axis" text-anchor="middle">${m.label}</text>`).join('');
+                    const dots = months.map((m, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(m.paid).toFixed(1)}" r="4" class="kd-pt"><title>${m.label}: ${rwf(m.paid)} paid, ${rwf(m.pending)} pending</title></circle>`).join('');
+                    const revenueChart = `<svg class="kd-line" viewBox="0 0 ${W} ${H}" role="img" aria-label="Paid and pending invoices over the last six months">
+                        <defs><linearGradient id="kdFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8661C" stop-opacity="0.28"/><stop offset="1" stop-color="#E8661C" stop-opacity="0"/></linearGradient></defs>
+                        ${grid}
+                        <path d="${line(paidPts)} L ${X(months.length - 1).toFixed(1)} ${Y(0).toFixed(1)} L ${X(0).toFixed(1)} ${Y(0).toFixed(1)} Z" fill="url(#kdFill)"/>
+                        <path d="${line(pts('pending'))}" class="kd-pending-line"/>
+                        <path d="${line(paidPts)}" class="kd-paid-line"/>
+                        ${dots}${xLabels}
+                    </svg>`;
+
+                    // Appointments by weekday, from the requested date (or booking time)
+                    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(l => ({ l, n: 0 }));
+                    appointmentsSnap.docs.forEach(d => {
+                        const a = d.data();
+                        const dt = a.date ? new Date(a.date + 'T00:00:00') : toDate(a.createdAt);
+                        if (dt && !isNaN(dt)) days[dt.getDay()].n++;
+                    });
+                    const dayMax = Math.max(1, ...days.map(x => x.n));
+                    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    const topDays = days.filter(x => x.n > 0 && x.n === dayMax);
+                    const dayBars = days.map(x => `<div class="kd-day${x.n ? ' has' : ''}${topDays.includes(x) ? ' is-top' : ''}" title="${dayNames[days.indexOf(x)]}: ${x.n} booking${x.n === 1 ? '' : 's'}">
+                        <span class="kd-day-val">${x.n || ''}</span>
+                        <div class="kd-day-bar" style="height:${Math.max(6, Math.round(x.n / dayMax * 100))}%"></div>
+                        <span class="kd-day-label">${x.l}</span></div>`).join('');
+                    const listNames = arr => arr.length > 1 ? arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1] : arr[0];
+                    const busiestText = !topDays.length ? 'No appointments booked yet.'
+                        : topDays.length === 7 ? 'Bookings are spread evenly across the week.'
+                        : `Most bookings fall on ${listNames(topDays.map(x => dayNames[days.indexOf(x)]))}.`;
+
+                    // Coming up: appointments in the next 14 days and open tasks due within 7 days (or overdue)
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const parseDay = v => {
+                        if (!v) return null;
+                        const m = String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                        const d = m ? new Date(+m[3], +m[1] - 1, +m[2]) : new Date(String(v) + 'T00:00:00');
+                        return isNaN(d) ? null : d;
+                    };
+                    const upcoming = [];
+                    appointmentsSnap.docs.forEach(d => {
+                        const a = d.data(); const day = parseDay(a.date);
+                        const st = String(a.status || 'pending').toLowerCase();
+                        if (!day || !['pending', 'confirmed'].includes(st)) return;
+                        const diff = (day - startOfToday) / 864e5;
+                        if (diff < 0 || diff > 14) return;
+                        upcoming.push({ day, icon: 'fa-calendar-check', title: a.name || 'Client', sub: [a.service || 'Consultation', a.time].filter(Boolean).join(' · '), chip: statusChip(a.status || 'Pending'), tab: 'appointments' });
+                    });
+                    tasksSnap.docs.forEach(d => {
+                        const tk = d.data(); const day = parseDay(tk.deadline);
+                        if (!day || tk.status === 'done') return;
+                        const diff = (day - startOfToday) / 864e5;
+                        if (diff > 7) return;
+                        upcoming.push({ day, icon: 'fa-list-check', title: tk.title || 'Task', sub: tk.caseCode ? 'Task · ' + tk.caseCode : 'Task', chip: diff < 0 ? '<span class="kd-chip bad">Overdue</span>' : '<span class="kd-chip neutral">Due</span>', tab: 'tasks' });
+                    });
+                    upcoming.sort((a, b) => a.day - b.day);
+                    const whenLabel = day => { const diff = Math.round((day - startOfToday) / 864e5); return diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday' : diff < 0 ? `${-diff} days ago` : day.toLocaleDateString('en-US', { weekday: 'short' }); };
+                    const upcomingHTML = upcoming.length ? '<ul class="kd-upcoming">' + upcoming.slice(0, 6).map(u => `
+                        <li><button type="button" onclick="switchTab('${u.tab}')">
+                            <span class="kd-date"><strong>${u.day.getDate()}</strong>${u.day.toLocaleDateString('en-US', { month: 'short' })}</span>
+                            <span class="kd-up-text"><strong>${esc(u.title)}</strong><span class="kd-muted"><i class="fa-solid ${u.icon}" aria-hidden="true"></i> ${whenLabel(u.day)} · ${esc(u.sub)}</span></span>
+                            ${u.chip}
+                        </button></li>`).join('') + '</ul>'
+                        : '<div class="kd-empty"><i class="fa-regular fa-calendar" aria-hidden="true"></i>Nothing scheduled in the next two weeks.</div>';
+
+                    // Greeting with today's date under the page title
+                    const hour = now.getHours();
+                    const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+                    const subtitle = document.querySelector('.kl-pagehead .text-muted');
+                    if (subtitle) subtitle.textContent = `${greet}. Here is what's happening today, ${now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
+
+                    // Case resolution gauge (closed / total)
+                    const closedCases = totalCases - openCases;
+                    const resolution = totalCases ? Math.round(closedCases / totalCases * 100) : 0;
+                    const ticks = 36; let gauge = '';
+                    for (let i = 0; i < ticks; i++) {
+                        const ang = Math.PI - (i / (ticks - 1)) * Math.PI;
+                        const x1 = 100 + Math.cos(ang) * 70, y1 = 100 - Math.sin(ang) * 70;
+                        const x2 = 100 + Math.cos(ang) * 90, y2 = 100 - Math.sin(ang) * 90;
+                        const on = i / (ticks - 1) <= resolution / 100 && resolution > 0;
+                        gauge += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${on ? 'on' : ''}"/>`;
+                    }
+
+                    const collectedPct = Math.round(totalRevenue / Math.max(totalRevenue + pendingRevenue, 1) * 100);
+                    const updated = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                    const pageActions = document.getElementById('klPageActions');
+                    if (pageActions) pageActions.innerHTML = `
+                        <button type="button" class="kd-updated" id="kdRefresh" title="Refresh the dashboard" onclick="refreshOverview()"><i class="fa-solid fa-rotate"></i> Updated ${updated}</button>
+                        <a href="index.html" target="_blank" rel="noopener" class="btn-outline kd-btn"><i class="fa-solid fa-eye"></i> Preview website</a>
+                        <button type="button" class="btn-primary kd-btn" onclick="generateMasterBackup()"><i class="fa-solid fa-download"></i> Export backup</button>`;
+                    const bellDot = document.getElementById('klBellDot');
+                    if (bellDot) bellDot.hidden = !unreadMsgs;
+
                     overviewTab.innerHTML = `
-                    <div style="margin-bottom:32px;">
-                        <h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--admin-sidebar-bg);margin-bottom:4px;">Analytics Overview</h2>
-                        <p style="color:var(--admin-text-muted);font-size:0.9rem;">Live stats from all platform collections · Updated just now</p>
-                    </div>
+                    <div class="kd">
+                        <div class="kd-kpis">
+                            ${kpiCard('fa-folder-open', 'Open cases', openCases, `${totalCases} total cases`, totalCases ? `${Math.round(openCases / totalCases * 100)}% active` : 'No cases yet', 'neutral', "switchTab('cases')")}
+                            ${kpiCard('fa-calendar-check', 'Pending appointments', pendingAppts, `${appointmentsSnap.size} total bookings`, pendingAppts ? 'Awaiting confirmation' : 'All confirmed', pendingAppts ? 'warn' : 'good', "switchTab('appointments')")}
+                            ${kpiCard('fa-file-invoice-dollar', 'Unpaid invoices', pendingInvoices, `${rwf(pendingRevenue)} outstanding`, pendingInvoices ? 'Follow up' : 'All settled', pendingInvoices ? 'bad' : 'good', "switchTab('billing')")}
+                            ${kpiCard('fa-comment-dots', 'New messages', unreadMsgs, `${messagesSnap.size} total enquiries`, unreadMsgs ? 'Needs reply' : 'All clear', unreadMsgs ? 'bad' : 'good', "switchTab('messages')")}
+                        </div>
 
-                    <!-- KPI Grid -->
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:32px;">
-                        ${kpiCard('fa-users','Total Clients', totalClients, '#4361ee', 'Registered portal accounts', '')}
-                        ${kpiCard('fa-folder-open','Open Cases', openCases, '#c5a059', `${totalCases} total cases`, openCases > 0 ? `${Math.round(openCases/Math.max(totalCases,1)*100)}% active` : 'All resolved')}
-                        ${kpiCard('fa-comment-dots','Unanswered Messages', unreadMsgs, unreadMsgs > 0 ? '#d92d20' : '#12b76a', 'Via Ask a Lawyer', unreadMsgs > 0 ? 'Needs attention' : 'All clear')}
-                        ${kpiCard('fa-calendar-clock','Pending Appointments', pendingAppts, '#f59e0b', `${appointmentsSnap.size} total bookings`, 'Awaiting confirmation')}
-                        ${kpiCard('fa-file-invoice-dollar','Unpaid Invoices', pendingInvoices, pendingInvoices > 0 ? '#d92d20' : '#12b76a', `RWF ${pendingRevenue.toLocaleString()} outstanding`, pendingInvoices > 0 ? 'Follow up required' : 'All settled')}
-                        ${kpiCard('fa-circle-dollar-to-slot','Revenue Collected', `RWF ${(totalRevenue/1000).toFixed(0)}K`, '#12b76a', 'From paid invoices', `${invoicesSnap.size} total invoices`)}
-                        ${kpiCard('fa-cloud-arrow-up','Client Uploads', totalUploads, '#8b5cf6', 'Documents received', 'In secure storage')}
-                        ${kpiCard('fa-scroll','Published Insights', insightsSnap.size, '#0d1b35', 'Legal articles live', `${vaultSnap.size} vault docs`)}
-                        ${kpiCard('fa-star','Client Satisfaction', ratingDisplay, '#f59e0b', `${ratingsSnap.size} ratings received`, avgRating >= 4 ? '🏆 Excellent' : avgRating >= 3 ? '👍 Good' : ratingsSnap.size > 0 ? '⚠ Needs attention' : 'No data yet')}
-                    </div>
-
-                    <!-- Revenue + Activity Row -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
-
-                        <!-- Revenue Breakdown -->
-                        <div class="dashboard-card">
-                            <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--admin-sidebar-bg);margin-bottom:20px;"><i class="fa-solid fa-chart-pie" style="color:#c5a059;margin-right:8px;"></i>Revenue Breakdown</h3>
-                            <div style="display:flex;flex-direction:column;gap:14px;">
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.85rem;">
-                                        <span style="font-weight:600;color:#12b76a;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i>Collected</span>
-                                        <span style="font-weight:700;">RWF ${totalRevenue.toLocaleString()}</span>
+                        <div class="kd-row kd-row-a">
+                            <section class="kd-card kd-revenue">
+                                <div class="kd-card-head"><h3>Revenue</h3><span class="kd-muted">Last 6 months</span></div>
+                                <div class="kd-revenue-body">
+                                    <div class="kd-revenue-total">
+                                        <span class="kd-big"><span class="kd-cur">RWF</span>${Math.round(totalRevenue).toLocaleString()}</span>
+                                        <span class="kd-chip ${collectedPct >= 50 ? 'good' : 'warn'}">${collectedPct}% collected</span>
+                                        <span class="kd-muted">${rwf(pendingRevenue)} still pending</span>
                                     </div>
-                                    <div style="height:8px;background:#f1f5f9;border-radius:50px;"><div style="height:100%;background:linear-gradient(90deg,#12b76a,#059669);border-radius:50px;width:${Math.round(totalRevenue/Math.max(totalRevenue+pendingRevenue,1)*100)}%;transition:width 1s;"></div></div>
+                                    <div class="kd-chart">${revenueChart}</div>
                                 </div>
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.85rem;">
-                                        <span style="font-weight:600;color:#f59e0b;"><i class="fa-solid fa-clock" style="margin-right:6px;"></i>Pending</span>
-                                        <span style="font-weight:700;">RWF ${pendingRevenue.toLocaleString()}</span>
+                                <div class="kd-legend"><span><i class="kd-dot paid"></i>Paid</span><span><i class="kd-dot pending dashed"></i>Pending</span></div>
+                                <div class="kd-mini">
+                                    <div class="kd-mini-item t1"><i class="fa-solid fa-users"></i><strong>${totalClients}</strong><span>Portal clients</span></div>
+                                    <div class="kd-mini-item t2"><i class="fa-solid fa-cloud-arrow-up"></i><strong>${totalUploads}</strong><span>Client uploads</span></div>
+                                    <div class="kd-mini-item t3"><i class="fa-solid fa-scroll"></i><strong>${insightsSnap.size}</strong><span>Published insights</span></div>
+                                </div>
+                            </section>
+
+                            <section class="kd-card kd-days">
+                                <div class="kd-card-head"><h3>Busiest days</h3><span class="kd-muted">Appointments</span></div>
+                                <div class="kd-days-chart">${dayBars}</div>
+                                <p class="kd-muted kd-center">${busiestText}</p>
+                            </section>
+                        </div>
+
+                        <div class="kd-row kd-row-b">
+                            <section class="kd-card kd-activity">
+                                <div class="kd-card-head"><h3>Recent client activity</h3><button type="button" class="kd-link" onclick="switchTab('messages')">View all</button></div>
+                                <div id="activityFeed"></div>
+                            </section>
+
+                            <section class="kd-card kd-gauge">
+                                    <div class="kd-card-head"><h3>Case resolution rate</h3></div>
+                                    <div class="kd-gauge-wrap">
+                                        <svg viewBox="0 0 200 110" aria-hidden="true">${gauge}</svg>
+                                        <div class="kd-gauge-val"><strong>${resolution}%</strong><span>${closedCases} of ${totalCases} closed</span></div>
                                     </div>
-                                    <div style="height:8px;background:#f1f5f9;border-radius:50px;"><div style="height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:50px;width:${Math.round(pendingRevenue/Math.max(totalRevenue+pendingRevenue,1)*100)}%;transition:width 1s;"></div></div>
-                                </div>
-                                <div style="border-top:1px solid #f1f5f9;padding-top:14px;display:flex;justify-content:space-between;font-weight:700;">
-                                    <span style="color:var(--admin-text-muted);">Grand Total</span>
-                                    <span style="color:var(--admin-sidebar-bg);font-size:1.05rem;">RWF ${(totalRevenue+pendingRevenue).toLocaleString()}</span>
-                                </div>
-                            </div>
+                                    <p class="kd-rating"><i class="fa-solid fa-star"></i> ${ratingsSnap.size ? `${avgRating} average client rating (${ratingsSnap.size})` : 'No client ratings yet'}</p>
+                            </section>
                         </div>
 
-                        <!-- Quick Actions -->
-                        <div class="dashboard-card">
-                            <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--admin-sidebar-bg);margin-bottom:20px;"><i class="fa-solid fa-bolt" style="color:#c5a059;margin-right:8px;"></i>Quick Actions</h3>
-                            <div style="display:flex;flex-direction:column;gap:10px;">
-                                <button class="btn-primary" onclick="switchTab('invoices')" style="justify-content:start;"><i class="fa-solid fa-file-invoice"></i> Create New Invoice</button>
-                                <button class="btn-outline" onclick="switchTab('cases')" style="text-align:left;"><i class="fa-solid fa-folder-plus" style="margin-right:8px;color:#c5a059;"></i> Open New Case</button>
-                                <button class="btn-outline" onclick="switchTab('lawyerinbox')" style="text-align:left;"><i class="fa-solid fa-reply" style="margin-right:8px;color:#c5a059;"></i> Reply to Messages ${unreadMsgs > 0 ? `<span style="background:#d92d20;color:#fff;font-size:0.65rem;padding:1px 6px;border-radius:50px;margin-left:auto;">${unreadMsgs}</span>` : ''}</button>
-                                <button class="btn-outline" onclick="switchTab('appointments')" style="text-align:left;"><i class="fa-solid fa-calendar-check" style="margin-right:8px;color:#c5a059;"></i> Review Appointments</button>
-                                <a href="index.html" target="_blank" class="btn-outline" style="text-align:left;text-decoration:none;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-eye" style="color:#c5a059;"></i> Preview Live Website</a><button class="btn-outline" onclick="generateMasterBackup()" style="text-align:left; margin-top:8px; color:#15803d; border-color:#bbf7d0; background:#f0fdf4;"><i class="fa-solid fa-download" style="margin-right:8px;"></i> Download Master Backup</button>
-                            </div>
-                        </div>
-                    </div>
+                        <div class="kd-row kd-row-b">
+                            <section class="kd-card kd-coming">
+                                <div class="kd-card-head"><h3>Coming up</h3><span class="kd-muted">Next 14 days</span></div>
+                                ${upcomingHTML}
+                            </section>
 
-                    <!-- Recent Activity Feed -->
-                    <div class="table-container">
-                        <div style="padding:20px 24px;border-bottom:1px solid var(--admin-border);display:flex;justify-content:space-between;align-items:center;">
-                            <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin:0;">Recent Client Activity</h3>
-                            <span style="font-size:0.8rem;color:var(--admin-text-muted);">Last 5 messages</span>
-                        </div>
-                        <div id="activityFeed" style="padding:0;">
-                            <div style="text-align:center;padding:30px;color:var(--admin-text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading activity...</div>
+                                <section class="kd-card kd-actions">
+                                    <div class="kd-card-head"><h3>Quick actions</h3></div>
+                                    <button type="button" onclick="switchTab('billing')"><i class="fa-solid fa-file-invoice"></i>Create invoice</button>
+                                    <button type="button" onclick="switchTab('cases')"><i class="fa-solid fa-folder-plus"></i>Open new case</button>
+                                    <button type="button" onclick="switchTab('messages')"><i class="fa-solid fa-reply"></i>Reply to messages${unreadMsgs ? `<span class="kd-badge">${unreadMsgs}</span>` : ''}</button>
+                                    <button type="button" onclick="switchTab('appointments')"><i class="fa-solid fa-calendar-check"></i>Review appointments${pendingAppts ? `<span class="kd-badge">${pendingAppts}</span>` : ''}</button>
+                                    <button type="button" onclick="switchTab('blog')"><i class="fa-solid fa-pen-nib"></i>Write a legal insight</button>
+                                </section>
                         </div>
                     </div>`;
 
-                    // Render activity feed from messages
+                    // Activity feed from the latest messages
                     const feedEl = document.getElementById('activityFeed');
                     if (feedEl) {
-                        const recent = messagesSnap.docs.slice(0, 6);
+                        const recent = messagesSnap.docs.slice(0, 5);
                         if (recent.length === 0) {
-                            feedEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--admin-text-muted);">No recent activity.</div>';
+                            feedEl.innerHTML = '<div class="kd-empty">No recent activity.</div>';
                         } else {
-                            feedEl.innerHTML = recent.map(doc => {
-                                const m = doc.data();
-                                const ago = m.createdAt ? timeAgo(m.createdAt.toDate()) : 'recently';
-                                const isUnanswered = m.status !== 'answered';
-                                return `<div style="display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid #f9fafb;">
-                                    <div style="width:36px;height:36px;border-radius:50%;background:${isUnanswered ? 'rgba(217,45,32,0.1)' : 'rgba(18,183,106,0.1)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                        <i class="fa-solid fa-comment-dots" style="color:${isUnanswered ? '#d92d20' : '#12b76a'};font-size:0.85rem;"></i>
-                                    </div>
-                                    <div style="flex:1;min-width:0;">
-                                        <div style="font-weight:700;font-size:0.88rem;color:#0d1b35;">${m.name || 'Client'} <span style="font-weight:400;color:#667085;">sent a message</span></div>
-                                        <div style="font-size:0.8rem;color:#98a2b3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(m.question || m.message || '—').slice(0,90)}…</div>
-                                    </div>
-                                    <div style="font-size:0.78rem;color:#98a2b3;white-space:nowrap;">${ago}</div>
-                                    ${isUnanswered ? '<span style="background:#fef2f2;color:#d92d20;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:50px;white-space:nowrap;">Needs Reply</span>' : '<span style="background:#f0fdf4;color:#12b76a;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:50px;">Answered</span>'}
-                                </div>`;
-                            }).join('');
+                            feedEl.innerHTML = `<table class="kd-table"><thead><tr><th>Client</th><th>Message</th><th>When</th><th>Status</th></tr></thead><tbody>` +
+                                recent.map(doc => {
+                                    const m = doc.data();
+                                    const ago = m.createdAt ? timeAgo(m.createdAt.toDate()) : 'recently';
+                                    const name = m.name || 'Client';
+                                    return `<tr>
+                                        <td><span class="kd-avatar">${esc(name.charAt(0).toUpperCase())}</span>${esc(name)}</td>
+                                        <td class="kd-trunc" title="${esc(m.message || m.question || '')}">${esc(m.message || m.question || '—')}</td>
+                                        <td class="kd-muted kd-nowrap">${ago}</td>
+                                        <td>${statusChip(m.status || 'unread')}</td>
+                                    </tr>`;
+                                }).join('') + '</tbody></table>';
                         }
                     }
                 }
@@ -340,27 +496,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 const badge = document.getElementById('inboxBadge');
                 if (badge) badge.textContent = unreadMsgs > 0 ? unreadMsgs : '';
 
+                // Sidebar counters: what is waiting on staff in each section
+                const pendingUploads = uploadsSnap.docs.filter(d => (d.data().approvalStatus || 'pending') !== 'approved').length;
+                setNavBadge('messages', unreadMsgs, 'new messages');
+                setNavBadge('appointments', pendingAppts, 'pending appointments');
+                setNavBadge('uploads', pendingUploads, 'uploads to review');
+                setNavBadge('billing', pendingInvoices, 'unpaid invoices');
+
                 // Still render other tabs in background
                 renderBlogList();
                 renderRecentLeads();
 
-            } catch (e) { console.error('Analytics load error:', e); }
+            } catch (e) {
+                console.error('Analytics load error:', e);
+                const overviewTab = document.getElementById('overviewTab');
+                if (overviewTab) overviewTab.innerHTML = `<div class="kd-card kd-empty is-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>The dashboard could not load. Check your connection.<button type="button" class="btn-outline kd-btn" onclick="location.reload()">Try again</button></div>`;
+            }
         }
 
+        window.refreshOverview = async function () {
+            const btn = document.getElementById('kdRefresh');
+            if (btn) { btn.disabled = true; btn.querySelector('i').classList.add('fa-spin'); }
+            await loadInitialData();
+            showToast('Dashboard updated');
+        };
+
+        function setNavBadge(tab, n, label) {
+            const el = document.getElementById('navBadge-' + tab);
+            if (!el) return;
+            el.hidden = !n;
+            el.textContent = n > 99 ? '99+' : String(n);
+            el.setAttribute('aria-label', n + ' ' + label);
+        }
+
+        // Connection badge in the top bar reflects the browser's real network state
+        const netStatus = document.getElementById('klNetStatus');
+        function updateNetStatus() {
+            if (!netStatus) return;
+            const online = navigator.onLine;
+            netStatus.classList.toggle('is-offline', !online);
+            netStatus.querySelector('span').textContent = online ? 'Online' : 'Offline';
+            netStatus.title = online ? 'Connected. Changes save to the database.' : 'No connection. Changes will not save until you are back online.';
+        }
+        window.addEventListener('online', () => { updateNetStatus(); showToast('Back online'); });
+        window.addEventListener('offline', () => { updateNetStatus(); showToast('You are offline. Changes will not save.', 'error'); });
+        updateNetStatus();
+
         // ── KPI card builder ─────────────────────────────────────────────────
-        function kpiCard(icon, label, value, color, sub, trend) {
+        function kpiCard(icon, label, value, sub, chip, tone, onclick) {
             return `
-            <div class="dashboard-card" style="cursor:default;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                    <div style="width:44px;height:44px;border-radius:12px;background:${color}18;display:flex;align-items:center;justify-content:center;">
-                        <i class="fa-solid ${icon}" style="color:${color};font-size:1.1rem;"></i>
-                    </div>
-                </div>
-                <div style="font-size:1.9rem;font-weight:800;color:var(--admin-sidebar-bg);line-height:1;">${value}</div>
-                <div style="font-weight:700;color:var(--admin-sidebar-bg);margin:6px 0 4px;font-size:0.9rem;">${label}</div>
-                <div style="font-size:0.78rem;color:var(--admin-text-muted);">${sub}</div>
-                ${trend ? `<div style="font-size:0.75rem;color:${color};font-weight:600;margin-top:6px;">${trend}</div>` : ''}
-            </div>`;
+            <button type="button" class="kd-card kd-kpi" onclick="${onclick}">
+                <span class="kd-kpi-top"><span class="kd-kpi-label">${label}</span><i class="fa-solid ${icon}"></i></span>
+                <span class="kd-kpi-row"><span class="kd-kpi-val">${value}</span><span class="kd-chip ${tone}">${chip}</span></span>
+                <span class="kd-muted">${sub}</span>
+            </button>`;
         }
 
         // ── Time-ago helper ──────────────────────────────────────────────────
@@ -408,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const querySnapshot = await db.collection("enquiries").orderBy("createdAt", "desc").get();
                 if (querySnapshot.empty) {
-                    messagesBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--admin-text-muted); padding: 40px;">No client messages yet.</td></tr>';
+                    messagesBody.innerHTML = emptyRow(6, 'fa-inbox', 'No client messages yet. New enquiries from the contact form appear here.');
                     return;
                 }
 
@@ -418,37 +607,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const row = document.createElement('tr');
                     const status = msg.status || 'unread';
                     const isUnread = status === 'unread';
-                    const isReplied = status === 'replied';
-
-                    row.style.background = isUnread ? 'rgba(197, 160, 89, 0.05)' : 'transparent';
-
-                    const statusBadge = isReplied
-                        ? '<span style="background:rgba(18,183,106,0.1);color:#027a48;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:50px;">Replied</span>'
-                        : isUnread
-                            ? '<span style="background:rgba(197,160,89,0.12);color:#b76e00;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:50px;">New</span>'
-                            : '<span style="background:rgba(102,112,133,0.1);color:#667085;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:50px;">Read</span>';
+                    row.dataset.status = status;
+                    if (isUnread) row.classList.add('kd-row-new');
 
                     row.innerHTML = `
                         <td>
-                            <div style="font-weight: 700;">${msg.name}</div>
-                            <div style="font-size: 0.8rem; color: var(--admin-text-muted);">${msg.email}</div>
-                            <div style="font-size: 0.8rem; color: var(--admin-text-muted);">${msg.phone || ''}</div>
+                            <div style="font-weight: 700;">${esc(msg.name || 'Unknown')}</div>
+                            <div class="kd-muted">${esc(msg.email || '')}</div>
+                            <div class="kd-muted">${esc(msg.phone || '')}</div>
                         </td>
                         <td>
-                            <div style="font-weight: 600; color: var(--admin-accent);">${msg.service || 'General Inquiry'}</div>
+                            <span class="kd-chip neutral">${esc(msg.service || 'General Inquiry')}</span>
                         </td>
-                        <td style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(msg.message||'').replace(/"/g,"'")}">
-                            ${msg.message || '—'}
+                        <td class="kd-trunc" style="max-width: 220px;" title="${esc(msg.message || '')}">${esc(msg.message || '—')}</td>
+                        <td>${statusChip(status)}</td>
+                        <td data-sort="${ts(msg.createdAt)}" style="white-space: nowrap;">
+                            ${msg.createdAt ? `<div>${msg.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div><div class="kd-muted">${msg.createdAt.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>` : 'N/A'}
                         </td>
-                        <td>${statusBadge}</td>
-                        <td style="font-size: 0.85rem;">
-                            ${msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleString() : 'N/A'}
-                        </td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            <button class="btn-outline reply-msg" data-id="${doc.id}" data-name="${(msg.name||'').replace(/"/g,"'")}" data-email="${msg.email}" data-service="${msg.service||''}" style="padding: 6px 10px; margin-right: 4px; color: #4361ee; border-color: #c7d0ff;" title="Reply to client"><i class="fa-solid fa-reply"></i> Reply</button>
-                            <button class="btn-outline convert-case" data-id="${doc.id}" data-name="${(msg.name||'').replace(/"/g,"'")}" data-email="${msg.email}" data-service="${msg.service||'General'}" style="padding: 6px 10px; margin-right: 4px; color: #c5a059; border-color: #e8d5a3;" title="Convert to Case"><i class="fa-solid fa-folder-plus"></i></button>
-                            ${isUnread ? `<button class="btn-outline mark-read" data-id="${doc.id}" style="padding: 6px 10px; margin-right: 4px;" title="Mark read"><i class="fa-solid fa-check"></i></button>` : ''}
-                            <button class="btn-outline delete-msg" data-id="${doc.id}" style="color: #d92d20; border-color: #fda29b; padding: 6px 10px;" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        <td class="kd-actions-cell">
+                            <button class="btn-outline kd-icon-btn reply-msg" data-id="${doc.id}" data-name="${esc(msg.name || '')}" data-email="${esc(msg.email || '')}" data-service="${esc(msg.service || '')}" title="Reply to client" aria-label="Reply to client"><i class="fa-solid fa-reply"></i></button>
+                            <button class="btn-outline kd-icon-btn convert-case" data-id="${doc.id}" data-name="${esc(msg.name || '')}" data-email="${esc(msg.email || '')}" data-service="${esc(msg.service || 'General')}" title="Convert to case" aria-label="Convert to case"><i class="fa-solid fa-folder-plus"></i></button>
+                            ${isUnread ? `<button class="btn-outline kd-icon-btn mark-read" data-id="${doc.id}" title="Mark as read" aria-label="Mark as read"><i class="fa-solid fa-check"></i></button>` : ''}
+                            <button class="btn-outline kd-icon-btn is-danger delete-msg" data-id="${doc.id}" title="Delete" aria-label="Delete message"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     `;
                     messagesBody.appendChild(row);
@@ -463,12 +643,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const service = btn.getAttribute('data-service');
                         try {
                             const res = await window.showCustomModal({
-                                title: `Reply to ${name}`,
+                                title: `Reply to ${name || 'client'}`,
                                 icon: 'fa-reply',
                                 contentHTML: `
                                     <div class="form-group mb-md">
                                         <label>Sending to</label>
-                                        <input type="text" class="form-control" value="${email}" readonly style="background:#f9fafb;color:#667085;">
+                                        <input type="text" class="form-control" value="${esc(email)}" readonly style="background:#f9fafb;color:#667085;">
                                     </div>
                                     <div class="form-group">
                                         <label for="replyBody">Your Reply *</label>
@@ -523,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Mark message as approved
                             await db.collection('enquiries').doc(id).update({ status: 'approved' });
                             
-                            showToast(`✅ Case Created! Tracking Code: ${trackingCode}`);
+                            showToast(`Case created. Tracking code: ${trackingCode}`);
                             
                             // Auto-navigate to Case Manager tab
                             window.switchTab('cases');
@@ -537,8 +717,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.mark-read').forEach(btn => {
                     btn.addEventListener('click', async () => {
                         const id = btn.getAttribute('data-id');
-                        await db.collection('enquiries').doc(id).update({ status: 'read' });
-                        showToast('Message marked as read');
+                        try {
+                            await db.collection('enquiries').doc(id).update({ status: 'read' });
+                            showToast('Message marked as read');
+                            loadInitialData();
+                        } catch (e) { return showToast('Could not update the message. Please try again.', 'error'); }
                         renderMessagesList();
                         renderRecentLeads();
                     });
@@ -559,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (e) {
                 console.error('Messages Load Error:', e);
-                messagesBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ff6b6b; padding: 20px;">Error connecting to messages database.</td></tr>';
+                messagesBody.innerHTML = errorRow(6, 'Messages could not be loaded. Check your connection and try again.');
             }
         }
 
@@ -584,11 +767,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function renderBlogList() {
             if (!blogTableBody) return;
-            blogTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading insights...</td></tr>';
+            blogTableBody.innerHTML = '<tr><td colspan="4" class="kh-sk-pending" style="padding:40px;">Loading insights...</td></tr>';
             try {
                 const querySnapshot = await db.collection("insights").orderBy("createdAt", "desc").get();
+                updateStarterButton(querySnapshot.docs.map(d => d.data()));
                 if (querySnapshot.empty) {
-                    blogTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--admin-text-muted);">No insights published yet. Click "Write New Insight" to get started.</td></tr>';
+                    blogTableBody.innerHTML = emptyRow(4, 'fa-scroll', 'No insights published yet. Click "Write New Insight", or "Load starter articles" to publish a ready-made set.');
                     return;
                 }
                 blogTableBody.innerHTML = '';
@@ -598,15 +782,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>
-                            <div style="font-weight:600;">${post.title}</div>
+                            <div style="font-weight:600;">${esc(post.title)}</div>
                             ${hasContent ? '<span style="font-size:0.75rem;background:rgba(18,183,106,0.1);color:#12b76a;padding:2px 8px;border-radius:50px;font-weight:600;"><i class="fa-solid fa-file-lines" style="margin-right:4px;"></i>Full Article</span>' : '<span style="font-size:0.75rem;background:rgba(102,112,133,0.1);color:#667085;padding:2px 8px;border-radius:50px;">Link Only</span>'}
                         </td>
-                        <td><span style="background:rgba(197,160,89,0.1);color:var(--admin-accent);padding:4px 12px;border-radius:50px;font-size:0.8rem;font-weight:600;">${post.category || 'General'}</span></td>
-                        <td style="color:var(--admin-text-muted);">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'}) : 'N/A'}</td>
-                        <td style="text-align:right;white-space:nowrap;display:flex;gap:8px;justify-content:flex-end;">
-                            <a href="blog-post.html?id=${doc.id}" target="_blank" class="btn-outline" title="Preview post" style="padding:8px 12px;font-size:0.8rem;text-decoration:none;"><i class="fa-solid fa-eye"></i></a>
-                            <button class="btn-outline edit-post" data-id="${doc.id}" title="Edit post" style="padding:8px 12px;"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button class="btn-outline delete-post" data-id="${doc.id}" style="color:#d92d20;border-color:#fda29b;padding:8px 12px;" title="Delete post"><i class="fa-solid fa-trash"></i></button>
+                        <td><span class="kd-chip neutral" style="white-space:nowrap;">${esc(post.category || 'General')}</span></td>
+                        <td style="color:var(--admin-text-muted);white-space:nowrap;">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'}) : 'N/A'}</td>
+                        <td class="kd-actions-cell">
+                            <a href="blog-post.html?id=${doc.id}" target="_blank" rel="noopener" class="btn-outline kd-icon-btn" title="View post" aria-label="View post"><i class="fa-solid fa-eye"></i></a>
+                            <button class="btn-outline kd-icon-btn edit-post" data-id="${doc.id}" title="Edit post" aria-label="Edit post"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="btn-outline kd-icon-btn is-danger delete-post" data-id="${doc.id}" title="Delete post" aria-label="Delete post"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     `;
                     blogTableBody.appendChild(row);
@@ -633,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
             } catch (e) {
-                blogTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ff6b6b;padding:20px;">Error loading insights. Check Firestore connection.</td></tr>';
+                blogTableBody.innerHTML = errorRow(4, 'Insights could not be loaded. Check your connection and try again.');
             }
         }
 
@@ -728,6 +912,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const publishBtnText = document.getElementById('publishBtnText');
         const editingPostIdField = document.getElementById('editingPostId');
 
+        // The article body is edited in the formatted editor (js/kh-rich.js)
+        function setArticle(html) {
+            if (window.KhRich) window.KhRich.set(html);
+            else document.getElementById('postContent').value = html;
+        }
+
         function showBlogEditor(post = null) {
             blogListView.style.display = 'none';
             blogEditorView.style.display = 'block';
@@ -739,7 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('postCategory').value = post.category || 'Corporate Law';
                 document.getElementById('postCoverImage').value = post.coverImage || '';
                 document.getElementById('postExcerpt').value = post.description || '';
-                document.getElementById('postContent').value = post.content || '';
+                setArticle(post.content || '');
                 publishBtnText.textContent = 'Update Insight';
             } else {
                 editorHeading.textContent = 'Write New Legal Insight';
@@ -748,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('postCategory').value = 'Corporate Law';
                 document.getElementById('postCoverImage').value = '';
                 document.getElementById('postExcerpt').value = '';
-                document.getElementById('postContent').value = '';
+                setArticle('');
                 publishBtnText.textContent = 'Publish Insight';
             }
         }
@@ -760,6 +950,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (newPostBtn) newPostBtn.addEventListener('click', () => showBlogEditor(null));
+
+        // ── Starter articles (js/admin-starter-posts.js) ──────────────────
+        const starterBtn = document.getElementById('loadStarterPostsBtn');
+        const STARTERS = window.KL_STARTER_POSTS || [];
+        // A starter counts as published when a post has its seedKey or the same title
+        const missingStarters = posts => STARTERS.filter(sp =>
+            !posts.some(p => p.seedKey === sp.seedKey || String(p.title || '').trim().toLowerCase() === sp.title.toLowerCase()));
+        function updateStarterButton(posts) {
+            if (starterBtn) starterBtn.hidden = !missingStarters(posts).length;
+        }
+        if (starterBtn) starterBtn.addEventListener('click', async () => {
+            let posts;
+            try {
+                posts = (await db.collection('insights').get()).docs.map(d => d.data());
+            } catch (e) { return showToast('Could not check existing articles. Please try again.', 'error'); }
+            const todo = missingStarters(posts);
+            if (!todo.length) { updateStarterButton(posts); return showToast('All starter articles are already published.'); }
+            try {
+                await showCustomModal({
+                    title: `Publish ${todo.length} starter article${todo.length === 1 ? '' : 's'}?`,
+                    icon: 'fa-scroll',
+                    contentHTML: `<p class="kd-modal-text">These articles will appear on the website's Legal Insights page straight away. They are general guidance; please read them and edit anything you like afterwards.</p>
+                        <ul class="kd-starter-list">${todo.map(sp => `<li><strong>${esc(sp.title)}</strong><span>${esc(sp.category)}</span></li>`).join('')}</ul>`,
+                    confirmText: 'Publish articles'
+                });
+            } catch (e) { return; }
+            starterBtn.disabled = true;
+            const Timestamp = firebase.firestore.Timestamp;
+            try {
+                // Space the dates a week apart (newest first) so the blog reads naturally
+                for (let i = 0; i < todo.length; i++) {
+                    const sp = todo[i];
+                    const date = new Date(Date.now() - i * 7 * 864e5);
+                    await db.collection('insights').add({
+                        title: sp.title, category: sp.category, coverImage: sp.coverImage,
+                        description: sp.description, content: sp.content, seedKey: sp.seedKey,
+                        views: 0, likes: 0, comments: 0,
+                        createdAt: Timestamp && Timestamp.fromDate ? Timestamp.fromDate(date) : firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                showToast(`${todo.length} article${todo.length === 1 ? '' : 's'} published to Legal Insights`);
+            } catch (e) {
+                console.error('Starter articles error:', e);
+                showToast('Some articles could not be published. Please try again.', 'error');
+            } finally {
+                starterBtn.disabled = false;
+                renderBlogList();
+                loadInitialData();
+            }
+        });
         if (backToListBtn) backToListBtn.addEventListener('click', showBlogList);
         if (cancelEditBtn) cancelEditBtn.addEventListener('click', showBlogList);
 
@@ -769,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const category = document.getElementById('postCategory').value;
                 const coverImage = document.getElementById('postCoverImage').value.trim();
                 const description = document.getElementById('postExcerpt').value.trim();
-                const content = document.getElementById('postContent').value.trim();
+                const content = (window.KhRich ? window.KhRich.get() : document.getElementById('postContent').value).trim();
                 const editingId = editingPostIdField.value;
 
                 if (!title) { showToast('Please enter an article title.', 'error'); return; }
@@ -858,38 +1098,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ── CASE MANAGER LOGIC ────────────────────────────────────────────────
         const newCaseBtn = document.getElementById('newCaseBtn');
+        const casesTableBody = document.getElementById('casesTableBody');
 
         async function renderCasesList() {
             if (!casesTableBody) return;
-            casesTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Retrieving legal case files...</td></tr>';
+            casesTableBody.innerHTML = '<tr><td colspan="5" class="kh-sk-pending" style="padding: 40px;">Loading cases...</td></tr>';
             try {
                 const querySnapshot = await db.collection("cases").orderBy("lastUpdated", "desc").get();
                 if (querySnapshot.empty) {
-                    casesTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--admin-text-muted); padding: 40px;">No cases found. Create your first case above.</td></tr>';
+                    casesTableBody.innerHTML = emptyRow(5, 'fa-folder-open', 'No cases yet. Click "New Case" to register the first one.');
                     return;
                 }
 
+                casesTableBody.innerHTML = '';
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     const row = document.createElement('tr');
                     const lastUpdated = data.lastUpdated ? new Date(data.lastUpdated.toDate()).toLocaleDateString() : 'N/A';
-                    
+                    const code = esc(data.trackingCode || '');
+                    const name = esc(data.clientName || 'Unknown client');
+                    row.dataset.status = String(data.status || 'initiated').toLowerCase();
+
                     row.innerHTML = `
-                        <td style="font-weight: 600;">${data.clientName}</td>
-                        <td style="display: flex; align-items: center; gap: 8px;">
-                            <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-family: monospace;">${data.trackingCode}</code>
-                            <div class="share-actions" style="display: flex; gap: 4px;">
-                                <button class="btn-copy copy-tracking" data-code="${data.trackingCode}" title="Copy Code" style="background: none; border: none; color: var(--color-accent); cursor: pointer; padding: 4px;"><i class="fa-regular fa-copy"></i></button>
-                                <button class="btn-share share-email" data-code="${data.trackingCode}" data-name="${data.clientName}" title="Share via Email" style="background: none; border: none; color: #ea4335; cursor: pointer; padding: 4px;"><i class="fa-solid fa-envelope"></i></button>
-                                <button class="btn-share share-whatsapp" data-code="${data.trackingCode}" data-name="${data.clientName}" title="Share via WhatsApp" style="background: none; border: none; color: #25d366; cursor: pointer; padding: 4px;"><i class="fa-brands fa-whatsapp"></i></button>
-                                <button class="btn-share share-sms" data-code="${data.trackingCode}" data-name="${data.clientName}" title="Share via SMS" style="background: none; border: none; color: #007aff; cursor: pointer; padding: 4px;"><i class="fa-solid fa-comment-sms"></i></button>
+                        <td>
+                            <div style="font-weight: 600;">${name}</div>
+                            ${data.description ? `<div class="kd-muted kd-trunc" style="max-width:260px;" title="${esc(data.description)}">${esc(data.description)}</div>` : ''}
+                        </td>
+                        <td>
+                            <div class="kd-code-cell">
+                                <code class="kd-code">${code}</code>
+                                <button class="kd-share copy-tracking" data-code="${code}" title="Copy code" aria-label="Copy tracking code"><i class="fa-regular fa-copy"></i></button>
+                                <button class="kd-share share-email" data-code="${code}" data-name="${name}" title="Share via email" aria-label="Share via email"><i class="fa-solid fa-envelope"></i></button>
+                                <button class="kd-share share-whatsapp" data-code="${code}" data-name="${name}" title="Share via WhatsApp" aria-label="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
+                                <button class="kd-share share-sms" data-code="${code}" data-name="${name}" title="Share via SMS" aria-label="Share via SMS"><i class="fa-solid fa-comment-sms"></i></button>
                             </div>
                         </td>
-                        <td><span class="status-badge status-${(data.status || 'processing').toLowerCase()}" style="padding: 4px 12px; border-radius: 50px;">${data.status}</span></td>
-                        <td>${lastUpdated}</td>
-                        <td style="text-align: right; white-space: nowrap;">
-                             <button class="btn-outline edit-case" data-id="${doc.id}" title="Update Case"><i class="fa-solid fa-pen-to-square"></i></button>
-                             <button class="btn-outline delete-case" data-id="${doc.id}" style="color: #d92d20; border-color: #fda29b;" title="Delete Case"><i class="fa-solid fa-trash"></i></button>
+                        <td>${statusChip(data.status || 'Initiated')}</td>
+                        <td data-sort="${ts(data.lastUpdated)}">${lastUpdated}</td>
+                        <td class="kd-actions-cell">
+                             <button class="btn-outline kd-icon-btn edit-case" data-id="${doc.id}" title="Manage case" aria-label="Manage case"><i class="fa-solid fa-pen-to-square"></i> Manage</button>
+                             <button class="btn-outline kd-icon-btn is-danger delete-case" data-id="${doc.id}" title="Delete case" aria-label="Delete case"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     `;
                     casesTableBody.appendChild(row);
@@ -938,12 +1186,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.edit-case').forEach(btn => {
                     btn.addEventListener('click', async () => {
                         const id = btn.getAttribute('data-id');
-                        const docSnapshot = await db.collection("cases").doc(id).get();
-                        const data = docSnapshot.data();
-                        
+                        let data;
                         try {
-                            const res = await window.showCustomModal({
-                                title: `Manage Case: ${data.clientName}`,
+                            data = (await db.collection("cases").doc(id).get()).data() || {};
+                        } catch (e) { return showToast('Could not open this case. Please try again.', 'error'); }
+                        const statusOptions = ['Initiated', 'Review', 'Approved', 'Rejected', 'Closed']
+                            .map(v => `<option value="${v}" ${data.status === v ? 'selected' : ''}>${v === 'Review' ? 'In Review' : v}</option>`).join('');
+                        const fieldsFor = {
+                            status: `<div class="form-group"><label for="newStatus">Current status</label><select id="newStatus" class="form-control">${statusOptions}</select></div>`,
+                            doc: `<div class="form-group mb-md"><label for="docName">Document label</label><input type="text" id="docName" class="form-control" placeholder="e.g. Formal approval PDF"></div><div class="form-group"><label for="docUrl">Document URL</label><input type="url" id="docUrl" class="form-control" placeholder="https://..."></div>`,
+                            desc: `<div class="form-group"><label for="newDesc">Case description</label><textarea id="newDesc" class="form-control" rows="4">${esc(data.description || '')}</textarea></div>`
+                        };
+
+                        try {
+                            const pending = window.showCustomModal({
+                                title: `Manage Case: ${data.clientName || 'Client'}`,
                                 icon: 'fa-user-gear',
                                 contentHTML: `
                                     <div class="form-group mb-md">
@@ -954,38 +1211,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <option value="desc">Modify Description</option>
                                         </select>
                                     </div>
-                                    <div id="dynamicFields">
-                                        <!-- Fields change based on selection -->
-                                        <div id="statusField">
-                                            <label>Current Status</label>
-                                            <select id="newStatus" class="form-control">
-                                                <option value="Initiated" ${data.status === 'Initiated' ? 'selected' : ''}>Initiated</option>
-                                                <option value="Review" ${data.status === 'Review' ? 'selected' : ''}>In Review</option>
-                                                <option value="Approved" ${data.status === 'Approved' ? 'selected' : ''}>Approved</option>
-                                                <option value="Rejected" ${data.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                                                <option value="Closed" ${data.status === 'Closed' ? 'selected' : ''}>Closed</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <script>
-                                        // We'll manage field toggling via manual injection or simple JS
-                                        setTimeout(() => {
-                                            const sel = document.getElementById('actionType');
-                                            const dyn = document.getElementById('dynamicFields');
-                                            sel.onchange = () => {
-                                                if(sel.value === 'status') {
-                                                    dyn.innerHTML = '<label>Update Status</label><select id="newStatus" class="form-control"><option value="Initiated">Initiated</option><option value="Review">In Review</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option><option value="Closed">Closed</option></select>';
-                                                } else if(sel.value === 'doc') {
-                                                    dyn.innerHTML = '<div class="form-group mb-md"><label>Document Label</label><input type="text" id="docName" class="form-control" placeholder="e.g. Formal Approval PDF"></div><div class="form-group"><label>PDF URL</label><input type="url" id="docUrl" class="form-control" placeholder="https://..."></div>';
-                                                } else {
-                                                    dyn.innerHTML = '<label>Case Description</label><textarea id="newDesc" class="form-control" rows="4">${data.description.replace(/'/g, "\\'")}</textarea>';
-                                                }
-                                            };
-                                        }, 100);
-                                    </script>
+                                    <div id="dynamicFields">${fieldsFor.status}</div>
                                 `,
-                                confirmText: 'Process Update'
+                                confirmText: 'Save changes'
                             });
+                            // The modal body is in place now: swap the fields when the action changes
+                            const actionSel = document.getElementById('actionType');
+                            const dyn = document.getElementById('dynamicFields');
+                            if (actionSel && dyn) actionSel.onchange = () => { dyn.innerHTML = fieldsFor[actionSel.value] || ''; };
+                            const res = await pending;
 
                             if (res) {
                                 if (res.actionType === 'status' && res.newStatus) {
@@ -994,7 +1228,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                                     });
                                     showToast("Case status updated!");
-                                } else if (res.actionType === 'doc' && res.docName && res.docUrl) {
+                                } else if (res.actionType === 'doc' && !(res.docName && res.docUrl)) {
+                                    return showToast('Enter both a document label and its URL.', 'error');
+                                } else if (res.actionType === 'doc') {
                                     const newDocs = [...(data.documents || []), { name: res.docName, url: res.docUrl }];
                                     await db.collection("cases").doc(id).update({
                                         documents: newDocs,
@@ -1011,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 renderCasesList();
                             }
                         } catch (e) {
-                            if (e) console.error("Edit Case error:", e);
+                            if (e) { console.error("Edit Case error:", e); showToast('Could not save the case. Please try again.', 'error'); }
                         }
                     });
                 });
@@ -1029,13 +1265,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
             } catch (e) {
-                casesTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ff6b6b; padding: 20px;">Database Error. Check Firestore connectivity.</td></tr>';
+                casesTableBody.innerHTML = errorRow(5, 'Cases could not be loaded. Check your connection and try again.');
             }
         }
 
         async function renderAppointmentsList() {
             if (!appointmentsTableBody) return;
-            appointmentsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Retrieving consultation schedule...</td></tr>';
+            appointmentsTableBody.innerHTML = '<tr><td colspan="5" class="kh-sk-pending" style="padding: 40px;">Loading appointments...</td></tr>';
 
             try {
                                 const snapshot = await db.collection("appointments").orderBy("createdAt", "desc").get();
@@ -1070,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (snapshot.empty) {
-                    appointmentsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">No consultations scheduled yet.</td></tr>';
+                    appointmentsTableBody.innerHTML = emptyRow(5, 'fa-calendar', 'No consultations booked yet. Bookings from the website appear here.');
                     return;
                 }
 
@@ -1096,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         window.calendarInstance.addEvent({
                             id: doc.id,
-                            title: appt.name + ' - ' + appt.service,
+                            title: (appt.name || 'Client') + ' - ' + (appt.service || 'Consultation'),
                             start: isoDate,
                             backgroundColor: color,
                             borderColor: color
@@ -1104,23 +1340,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const row = document.createElement('tr');
+                    row.dataset.status = statusClass;
+                    const when = new Date((appt.date || '') + ' ' + (appt.time || '')).getTime() || ts(appt.createdAt);
+                    // Offer only the moves that make sense from the current status
+                    const actions = [
+                        statusClass === 'pending' ? ['Confirmed', 'Confirm', ''] : null,
+                        ['pending', 'confirmed'].includes(statusClass) ? ['Completed', 'Complete', ''] : null,
+                        ['pending', 'confirmed'].includes(statusClass) ? ['Cancelled', 'Cancel', ' is-danger'] : null
+                    ].filter(Boolean);
                     row.innerHTML = `
                         <td>
-                            <div style="font-weight: 600;">${appt.name}</div>
-                            <div style="font-size: 0.8rem; color: #667085;">${appt.email}</div>
+                            <div style="font-weight: 600;">${esc(appt.name || 'Unknown')}</div>
+                            <div class="kd-muted">${esc(appt.email || '')}</div>
                         </td>
-                        <td><span class="badge" style="background: #f2f4f7; color: #344054;">${appt.service}</span></td>
-                        <td>
-                            <div style="font-weight: 500;">${appt.date}</div>
-                            <div style="font-size: 0.8rem; color: #667085;">${appt.time}</div>
+                        <td><span class="kd-chip neutral">${esc(appt.service || 'Consultation')}</span></td>
+                        <td data-sort="${when}">
+                            <div style="font-weight: 500;">${esc(appt.date || '—')}</div>
+                            <div class="kd-muted">${esc(appt.time || '')}</div>
                         </td>
-                        <td><span class="status-badge status-${statusClass}">${appt.status}</span></td>
-                        <td style="text-align: right;">
-                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                <button class="btn-outline update-appt" data-id="${doc.id}" data-status="Confirmed" style="font-size: 0.75rem; padding: 4px 8px;">Confirm</button>
-                                <button class="btn-outline update-appt" data-id="${doc.id}" data-status="Completed" style="font-size: 0.75rem; padding: 4px 8px;">Complete</button>
-                                <button class="btn-outline update-appt" data-id="${doc.id}" data-status="Cancelled" style="color: #d92d20; font-size: 0.75rem; padding: 4px 8px;">Cancel</button>
-                            </div>
+                        <td>${statusChip(appt.status || 'Pending')}</td>
+                        <td class="kd-actions-cell">
+                            ${actions.length ? actions.map(([value, label, cls]) => `<button class="btn-outline kd-icon-btn${cls} update-appt" data-id="${doc.id}" data-status="${value}">${label}</button>`).join('') : '<span class="kd-muted">No actions</span>'}
                         </td>
                     `;
                     appointmentsTableBody.appendChild(row);
@@ -1131,15 +1371,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.onclick = async () => {
                         const id = btn.getAttribute('data-id');
                         const newStatus = btn.getAttribute('data-status');
-                        await db.collection("appointments").doc(id).update({ status: newStatus });
-                        showToast(`Appointment ${newStatus}`);
-                        renderAppointmentsList();
+                        if (newStatus === 'Cancelled') {
+                            try { await showCustomModal({ title: 'Cancel appointment?', icon: 'fa-calendar-xmark', contentHTML: '<p class="kd-modal-text">The appointment will be marked as cancelled.</p>', confirmText: 'Cancel appointment', cancelText: 'Keep it' }); }
+                            catch (e) { return; }
+                        }
+                        btn.disabled = true;
+                        try {
+                            await db.collection("appointments").doc(id).update({ status: newStatus });
+                            showToast(`Appointment ${newStatus.toLowerCase()}`);
+                            renderAppointmentsList();
+                        } catch (e) {
+                            btn.disabled = false;
+                            showToast('Could not update the appointment. Please try again.', 'error');
+                        }
                     };
                 });
 
             } catch (e) {
                 console.error("Appointments Error:", e);
-                appointmentsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ff6b6b; padding: 20px;">Error loading schedule.</td></tr>';
+                appointmentsTableBody.innerHTML = errorRow(5, 'Appointments could not be loaded. Check your connection and try again.');
             }
         }
 
@@ -1164,6 +1414,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>`,
                         confirmText: 'Create Case'
                     });
+                    if (res && !String(res.clientName || '').trim()) return showToast('Enter the client name to create a case.', 'error');
                     if (res && res.clientName) {
                         const trackingCode = 'KL-' + Math.random().toString(36).substr(2,4).toUpperCase() + '-' + Math.floor(1000 + Math.random()*9000);
                         await db.collection('cases').add({
@@ -1176,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         showToast(`Case Created! Code: ${trackingCode}`);
                         renderCasesList();
                     }
-                } catch(e) { if (e) console.error('Case create error:', e); }
+                } catch(e) { if (e) { console.error('Case create error:', e); showToast('Could not create the case. Please try again.', 'error'); } }
             });
         }
 
@@ -1188,14 +1439,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tplBody = document.getElementById('templatesTableBody');
             if (subBody) {
                 try {
-                    const subs = await db.collection("newsletter_subscribers").orderBy("timestamp", "desc").get();
+                    const subs = await db.collection("newsletter_subscribers").orderBy("subscribedAt", "desc").get();
                     if (subs.empty) {
                         subBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--admin-text-muted); padding: 20px;">No subscribers yet.</td></tr>';
                     } else {
                         subBody.innerHTML = '';
                         subs.forEach(doc => {
                             const data = doc.data();
-                            subBody.innerHTML += `<tr><td><div style="font-weight: 600;">${data.email}</div></td><td>${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'N/A'}</td></tr>`;
+                            subBody.innerHTML += `<tr><td><div style="font-weight: 600;">${esc(data.email)}</div></td><td>${data.subscribedAt ? new Date(data.subscribedAt.toDate()).toLocaleDateString() : 'N/A'}</td></tr>`;
                         });
                     }
                 } catch (e) { subBody.innerHTML = '<tr><td colspan="2">Error loading</td></tr>'; }
@@ -1203,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tplBody) {
                 try {
-                    const tpls = await db.collection("template_requests").orderBy("timestamp", "desc").get();
+                    const tpls = await db.collection("template_requests").orderBy("requestedAt", "desc").get();
                     if (tpls.empty) {
                         tplBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--admin-text-muted); padding: 20px;">No requests yet.</td></tr>';
                     } else {
@@ -1213,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             tplBody.innerHTML += `<tr>
                                 <td><div style="font-weight: 600;">${data.name}</div><div style="font-size:0.8rem; color:#667085;">${data.email}</div></td>
                                 <td><span style="background:rgba(197,160,89,0.1); color:var(--admin-accent); padding:4px 8px; border-radius:4px; font-weight:600; font-size:0.85rem;">${data.template}</span></td>
-                                <td>${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'N/A'}</td>
+                                <td>${data.requestedAt ? new Date(data.requestedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
                             </tr>`;
                         });
                     }
@@ -1225,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const upBody = document.getElementById('uploadsTableBody');
             const countBadge = document.getElementById('uploadsCount');
             if (!upBody) return;
-            upBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading documents...</td></tr>';
+            upBody.innerHTML = '<tr><td colspan="6" class="kh-sk-pending" style="padding:40px;">Loading uploads...</td></tr>';
             try {
                 const snap = await db.collection("client_uploads").orderBy("uploadedAt", "desc").get();
                 const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1236,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (countBadge) countBadge.textContent = all.length;
 
                 if (filtered.length === 0) {
-                    upBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--admin-text-muted);padding:40px;">${filterCode ? 'No documents match your search.' : 'No client uploads yet.'}</td></tr>`;
+                    upBody.innerHTML = emptyRow(6, 'fa-cloud-arrow-up', filterCode ? 'No documents match your search.' : 'No client uploads yet. Files clients upload from their portal appear here.');
                     return;
                 }
 
@@ -1250,27 +1501,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const date = data.uploadedAt ? new Date(data.uploadedAt.toDate()).toLocaleString('en-RW', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
                     const size = data.fileSize ? `${(data.fileSize / 1024).toFixed(0)} KB` : 'N/A';
                     const status = data.approvalStatus || 'pending';
-                    const statusBadge = status === 'approved' ? `<span style="background:rgba(18,183,106,0.1);color:#027a48;padding:2px 8px;border-radius:50px;font-size:0.75rem;font-weight:600;"><i class="fa-solid fa-check"></i> Approved</span>` : `<span style="background:rgba(247,144,9,0.1);color:#b45309;padding:2px 8px;border-radius:50px;font-size:0.75rem;font-weight:600;">Pending</span>`;
+                    const statusBadge = statusChip(status);
 
                     const row = document.createElement('tr');
+                    row.dataset.status = status;
                     row.innerHTML = `
                         <td>
-                            <code style="background:#f1f5f9;padding:4px 10px;border-radius:6px;font-weight:700;font-family:monospace;font-size:0.85rem;">${data.caseCode}</code>
+                            <code class="kd-code">${esc(data.caseCode || '—')}</code>
                         </td>
                         <td>
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <div style="width:36px;height:36px;background:${color}15;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     <i class="fa-solid ${icon}" style="color:${color};font-size:1rem;"></i>
                                 </div>
-                                <div style="font-weight:600;color:#0d1b35;font-size:0.9rem;">${data.fileName}</div>
+                                <div style="font-weight:600;color:#0d1b35;font-size:0.9rem;">${esc(data.fileName || 'Untitled file')}</div>
                             </div>
                         </td>
-                        <td style="color:#667085;font-size:0.85rem;">${date}</td>
-                        <td style="color:#667085;font-size:0.85rem;">${size}</td>
+                        <td data-sort="${ts(data.uploadedAt)}" style="color:#667085;font-size:0.85rem;">${date}</td>
+                        <td data-sort="${data.fileSize || 0}" style="color:#667085;font-size:0.85rem;">${size}</td>
                         <td>${statusBadge}</td>
                         <td style="text-align:right;white-space:nowrap;">
                             ${status !== 'approved' ? `<button class="btn-primary approve-upload" data-id="${data.id}" style="padding:6px 12px;font-size:0.8rem;margin-right:6px;" title="Approve & Attach to Case"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
-                            <a href="${data.url}" target="_blank" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;text-decoration:none;margin-right:6px;" title="Download"><i class="fa-solid fa-download"></i></a>
+                            <a href="${esc(data.url || '#')}" target="_blank" rel="noopener" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;text-decoration:none;margin-right:6px;" title="Download"><i class="fa-solid fa-download"></i></a>
                             <button class="btn-outline delete-upload" data-id="${data.id}" style="color:#d92d20;border-color:#fda29b;padding:6px 10px;" title="Delete"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     `;
@@ -1282,9 +1534,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.addEventListener('click', async () => {
                         try {
                             await db.collection('client_uploads').doc(btn.getAttribute('data-id')).update({ approvalStatus: 'approved' });
-                            showToast('✅ Document approved and attached to case');
-                            renderUploadsList(document.getElementById('uploadsSearch')?.value || '');
-                        } catch(e) { console.error('Approval failed:', e); }
+                            showToast('Document approved and attached to the case');
+                            renderUploadsList();
+                        } catch(e) { console.error('Approval failed:', e); showToast('Could not approve the document. Please try again.', 'error'); }
                     });
                 });
 
@@ -1295,13 +1547,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             await showConfirmModal('Delete Document?', 'This permanently removes the uploaded document record. The file in storage will remain but become unlinked.');
                             await db.collection('client_uploads').doc(btn.getAttribute('data-id')).delete();
                             showToast('Document record removed.');
-                            renderUploadsList(document.getElementById('uploadsSearch')?.value || '');
+                            renderUploadsList();
                         } catch (e) { /* cancelled */ }
                     });
                 });
 
             } catch (e) {
-                upBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ff6b6b;padding:20px;">Error loading uploads.</td></tr>';
+                upBody.innerHTML = errorRow(6, 'Uploads could not be loaded. Check your connection and try again.');
             }
         }
 
@@ -1347,8 +1599,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const gridClosed = document.getElementById('closedCasesGrid');
             if (!gridOpen || !gridClosed) return;
             
-            gridOpen.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#667085;"><i class="fa-solid fa-spinner fa-spin"></i> Loading cases...</div>';
-            gridClosed.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#667085;"><i class="fa-solid fa-spinner fa-spin"></i> Loading cases...</div>';
+            gridOpen.innerHTML = '<div class="kh-sk-pending" style="grid-column:1/-1;border-radius:12px;">Loading cases...</div>';
+            gridClosed.innerHTML = '<div class="kh-sk-pending" style="grid-column:1/-1;border-radius:12px;">Loading cases...</div>';
             
             try {
                 const snap = await db.collection('cases').orderBy('lastUpdated', 'desc').get();
@@ -1362,16 +1614,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         const sigBadge = d.signed ? '<span style="background:#f0fdf4;color:#166534;font-size:0.65rem;padding:2px 6px;border-radius:50px;margin-left:auto;"><i class="fa-solid fa-check"></i> Signed</span>' : 
                                        d.requiresSignature ? '<span style="background:#fff7ed;color:#c2410c;font-size:0.65rem;padding:2px 6px;border-radius:50px;margin-left:auto;"><i class="fa-solid fa-clock"></i> Pending Sig</span>' :
                                        `<button class="btn-req-sig" data-case="${c.id}" data-idx="${index}" style="margin-left:auto;background:none;border:none;color:#4361ee;font-size:0.7rem;cursor:pointer;font-weight:600;"><i class="fa-solid fa-pen-nib"></i> Req. Sign</button>`;
-                        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:8px;background:#f9fafb;margin-bottom:6px;"><a href="${d.url}" target="_blank" style="text-decoration:none;font-size:0.8rem;color:#344054;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-file-pdf" style="color:#4361ee;"></i>${d.name}</a>${sigBadge}</div>`;
+                        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:8px;background:#f9fafb;margin-bottom:6px;"><a href="${esc(d.url || '#')}" target="_blank" rel="noopener" style="text-decoration:none;font-size:0.8rem;color:#344054;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-file-pdf" style="color:#4361ee;"></i>${esc(d.name || 'Document')}</a>${sigBadge}</div>`;
                     }).join('');
                     
                     const date = c.lastUpdated ? new Date(c.lastUpdated.toDate()).toLocaleDateString('en-RW') : 'N/A';
                     return `
                         <div style="background:#fff;border:1px solid var(--admin-border);border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-                            <div style="font-weight:700;color:#0d1b35;margin-bottom:4px;font-size:1.05rem;">${c.clientName}</div>
+                            <div style="font-weight:700;color:#0d1b35;margin-bottom:4px;font-size:1.05rem;">${esc(c.clientName || 'Unknown client')}</div>
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                                <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:0.75rem;color:#4361ee;font-weight:700;">${c.trackingCode}</code>
-                                <span style="font-size:0.75rem;color:#667085;">Status: <strong style="color:#344054;">${c.status}</strong></span>
+                                <code class="kd-code">${esc(c.trackingCode || '')}</code>
+                                ${statusChip(c.status || 'Initiated')}
                             </div>
                             <div style="font-size:0.8rem;color:#667085;margin-bottom:16px;">Updated: ${date}</div>
                             <div style="border-top:1px solid #f1f5f9;padding-top:12px;">
@@ -1382,13 +1634,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (openCases.length === 0) {
-                    gridOpen.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#667085;">No open cases available.</div>';
+                    gridOpen.innerHTML = '<div class="kd-empty" style="grid-column:1/-1;"><i class="fa-solid fa-folder-open" aria-hidden="true"></i>No open cases.</div>';
                 } else {
                     gridOpen.innerHTML = openCases.map(buildCard).join('');
                 }
                 
                 if (closedCases.length === 0) {
-                    gridClosed.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#667085;">No closed cases available.</div>';
+                    gridClosed.innerHTML = '<div class="kd-empty" style="grid-column:1/-1;"><i class="fa-solid fa-box-archive" aria-hidden="true"></i>No closed cases yet.</div>';
                 } else {
                     gridClosed.innerHTML = closedCases.map(buildCard).join('');
                 }
@@ -1408,12 +1660,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 showToast("Signature Requested for " + docs[idx].name);
                                 renderDocumentsTab();
                             }
-                        } catch(e) { console.error(e); }
+                        } catch(e) { console.error(e); showToast('Could not request the signature. Please try again.', 'error'); }
                     });
                 });
                 
             } catch(e) {
                 console.error("Error loading documents tab:", e);
+                gridOpen.innerHTML = gridClosed.innerHTML = '<div class="kd-empty is-error" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Documents could not be loaded. Check your connection and try again.</div>';
             }
         }
 
@@ -1566,11 +1819,26 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(e) { console.error('Sig request error:', e); }
         }
 
+        // ── Newsletter subscribers ─────────────────────────────────────────────
+        // The website saves sign-ups to newsletter_subscribers (js/newsletter.js);
+        // older ones may be in subscribers. Both are read, one entry per email.
+        async function getSubscribers() {
+            const snaps = await Promise.all(['newsletter_subscribers', 'subscribers'].map(c =>
+                db.collection(c).get().catch(err => { console.warn('Could not read ' + c, err); return { docs: [] }; })));
+            const byEmail = new Map();
+            snaps.forEach(snap => snap.docs.forEach(doc => {
+                const d = doc.data();
+                const email = String(d.email || '').trim().toLowerCase();
+                if (email && !byEmail.has(email)) byEmail.set(email, Object.assign({}, d, { email }));
+            }));
+            return [...byEmail.values()].sort((a, b) => ts(b.subscribedAt) - ts(a.subscribedAt));
+        }
+
         // ── Marketing Tab ──────────────────────────────────────────────────────
         async function loadMarketingTab() {
             try {
-                const [subSnap, clientSnap, campSnap] = await Promise.all([
-                    db.collection('subscribers').get(),
+                const [subscribers, clientSnap, campSnap] = await Promise.all([
+                    getSubscribers(),
                     db.collection('users').get(),
                     db.collection('campaigns').orderBy('sentAt','desc').get()
                 ]);
@@ -1578,21 +1846,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subEl = document.getElementById('mktSubCount');
                 const cliEl = document.getElementById('mktClientCount');
                 const campEl = document.getElementById('mktCampaignCount');
-                if (subEl) subEl.textContent = subSnap.size;
+                if (subEl) subEl.textContent = subscribers.length;
                 if (cliEl) cliEl.textContent = clientSnap.size;
                 if (campEl) campEl.textContent = campSnap.size;
 
                 // Subscribers list
                 const subBody = document.getElementById('subscribersTableBody');
                 if (subBody) {
-                    if (subSnap.empty) {
+                    if (!subscribers.length) {
                         subBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--admin-text-muted);padding:24px;">No subscribers yet.</td></tr>';
                     } else {
                         subBody.innerHTML = '';
-                        subSnap.forEach(doc => {
-                            const d = doc.data();
+                        subscribers.forEach(d => {
                             subBody.innerHTML += `<tr>
-                                <td style="font-weight:500">${d.email}</td>
+                                <td style="font-weight:500">${esc(d.email)}</td>
                                 <td style="color:#667085;font-size:0.85rem">${d.subscribedAt ? new Date(d.subscribedAt.toDate()).toLocaleDateString('en-RW') : 'N/A'}</td>
                             </tr>`;
                         });
@@ -1602,7 +1869,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Templates list
                 const tmplBody = document.getElementById('templatesTableBody');
                 if (tmplBody) {
-                    const tmplSnap = await db.collection('template_requests').orderBy('createdAt','desc').limit(20).get();
+                    const tmplSnap = await db.collection('template_requests').orderBy('requestedAt','desc').limit(20).get();
                     if (tmplSnap.empty) {
                         tmplBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--admin-text-muted);padding:24px;">No template requests yet.</td></tr>';
                     } else {
@@ -1610,9 +1877,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         tmplSnap.forEach(doc => {
                             const d = doc.data();
                             tmplBody.innerHTML += `<tr>
-                                <td><div style="font-weight:600">${d.name||'—'}</div><div style="font-size:0.78rem;color:#667085">${d.email||''}</div></td>
-                                <td style="color:#344054;font-size:0.88rem">${d.template||'—'}</td>
-                                <td style="color:#667085;font-size:0.82rem">${d.createdAt ? new Date(d.createdAt.toDate()).toLocaleDateString() : 'N/A'}</td>
+                                <td><div style="font-weight:600">${esc(d.name||'—')}</div><div style="font-size:0.78rem;color:#667085">${esc(d.email||'')}</div></td>
+                                <td style="color:#344054;font-size:0.88rem">${esc(d.template||'—')}</td>
+                                <td style="color:#667085;font-size:0.82rem">${d.requestedAt ? new Date(d.requestedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
                             </tr>`;
                         });
                     }
@@ -1664,8 +1931,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let emails = new Set();
 
                 if (audience === 'subscribers' || audience === 'all') {
-                    const subSnap = await db.collection('subscribers').get();
-                    subSnap.forEach(d => { if (d.data().email) emails.add(d.data().email.trim().toLowerCase()); });
+                    (await getSubscribers()).forEach(d => emails.add(d.email));
                 }
                 if (audience === 'clients' || audience === 'all') {
                     const cliSnap = await db.collection('users').get();
@@ -1746,13 +2012,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.exportSubscribers = async function() {
             try {
-                const snap = await db.collection('subscribers').get();
-                if (snap.empty) return showToast('No subscribers to export.', 'error');
-                let csv = 'Email,Date Subscribed\n';
-                snap.forEach(doc => {
-                    const d = doc.data();
+                const subscribers = await getSubscribers();
+                if (!subscribers.length) return showToast('No subscribers to export.', 'error');
+                let csv = 'Name,Email,Date Subscribed\n';
+                const cell = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+                subscribers.forEach(d => {
                     const date = d.subscribedAt ? new Date(d.subscribedAt.toDate()).toLocaleDateString() : '';
-                    csv += `"${d.email}","${date}"\n`;
+                    csv += [cell(d.name), cell(d.email), cell(date)].join(',') + '\n';
                 });
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const a = document.createElement('a');
@@ -1793,7 +2059,7 @@ function initAdminPushNotifications() {
     if (Notification.permission === 'default') {
         setTimeout(() => {
             Notification.requestPermission().then(perm => {
-                if (perm === 'granted') showAdminPush('🔔 Notifications On', 'You will now receive real-time alerts for messages and bookings.', null);
+                if (perm === 'granted') showAdminPush('Notifications on', 'You will now receive real-time alerts for messages and bookings.', null);
             });
         }, 3000);
     }
@@ -1803,8 +2069,8 @@ function initAdminPushNotifications() {
     let _lastMsgTime = Date.now();
     let _lastBookTime = Date.now();
 
-    // Watch for new messages
-    db.collection('messages').orderBy('createdAt', 'desc').limit(1)
+    // Watch for new contact-form enquiries (Client Messages tab)
+    db.collection('enquiries').orderBy('createdAt', 'desc').limit(1)
         .onSnapshot(snap => {
             if (snap.empty) return;
             const d = snap.docs[0].data();
@@ -1812,15 +2078,15 @@ function initAdminPushNotifications() {
             if (ts > _lastMsgTime) {
                 _lastMsgTime = ts;
                 showAdminPush(
-                    `💬 New Message from ${d.clientName || 'Client'}`,
-                    d.question ? d.question.substring(0, 80) + '…' : 'A client sent a new message.',
-                    '#lawyerinbox'
+                    `New message from ${d.name || 'a client'}`,
+                    d.message ? d.message.substring(0, 80) + '…' : 'A client sent a new message.',
+                    '#messages'
                 );
-                // Update inbox badge
-                const badge = document.getElementById('inboxBadge');
-                if (badge) badge.textContent = Number(badge.textContent || 0) + 1;
+                if (window.showToast) window.showToast(`New message from ${d.name || 'a client'}`);
+                const bellDot = document.getElementById('klBellDot');
+                if (bellDot) bellDot.hidden = false;
             }
-        });
+        }, err => console.warn('Message alerts unavailable:', err));
 
     // Watch for new bookings
     db.collection('appointments').orderBy('createdAt', 'desc').limit(1)
@@ -1831,12 +2097,13 @@ function initAdminPushNotifications() {
             if (ts > _lastBookTime) {
                 _lastBookTime = ts;
                 showAdminPush(
-                    `📅 New Booking — ${d.service || 'Consultation'}`,
+                    `New booking: ${d.service || 'Consultation'}`,
                     `${d.name || 'A client'} booked for ${d.date || ''} at ${d.time || ''}`,
                     '#appointments'
                 );
+                if (window.showToast) window.showToast(`New booking from ${d.name || 'a client'}`);
             }
-        });
+        }, err => console.warn('Booking alerts unavailable:', err));
 }
 
 function showAdminPush(title, body, tabHash) {
@@ -1866,7 +2133,7 @@ window.exportAppointmentsCSV = async function() {
         if(typeof showToast === 'function') showToast("Preparing Appointments Export...", "info");
         const snapshot = await window.fbDb.collection("appointments").orderBy("createdAt", "desc").get();
         if (snapshot.empty) {
-            alert("No appointments to export.");
+            if (window.showToast) window.showToast("No appointments to export.", "error");
             return;
         }
         let csvContent = "data:text/csv;charset=utf-8,Name,Email,Date,Time,Service,Tracking Number,Status,Created At\n";
@@ -1895,7 +2162,7 @@ window.exportAppointmentsCSV = async function() {
         if(typeof showToast === 'function') showToast("Export successful!", "success");
     } catch (e) {
         console.error("Export Error:", e);
-        alert("Failed to export appointments.");
+        if (window.showToast) window.showToast("Failed to export appointments.", "error");
     }
 };
 
@@ -1904,7 +2171,7 @@ window.exportMessagesCSV = async function() {
         if(typeof showToast === 'function') showToast("Preparing Messages Export...", "info");
         const snapshot = await window.fbDb.collection("enquiries").orderBy("createdAt", "desc").get();
         if (snapshot.empty) {
-            alert("No messages to export.");
+            if (window.showToast) window.showToast("No messages to export.", "error");
             return;
         }
         let csvContent = "data:text/csv;charset=utf-8,Name,Email,Phone,Service,Message,Status,Created At\n";
@@ -1934,7 +2201,7 @@ window.exportMessagesCSV = async function() {
         if(typeof showToast === 'function') showToast("Export successful!", "success");
     } catch (e) {
         console.error("Export Error:", e);
-        alert("Failed to export messages.");
+        if (window.showToast) window.showToast("Failed to export messages.", "error");
     }
 };
 
@@ -2022,7 +2289,7 @@ window.exportMessagesCSV = async function() {
             const term = conflictSearchInput.value.trim().toLowerCase();
             if (!term) return showToast('Please enter a name or email to search.', 'error');
             
-            conflictSearchTermDisplay.innerHTML = `Searching for: <strong>${term}</strong>`;
+            conflictSearchTermDisplay.innerHTML = `Searching for: <strong>${window.esc(term)}</strong>`;
             conflictResultsContainer.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Running deep search...</div>';
             conflictCheckModal.style.display = 'flex';
             
@@ -2066,10 +2333,10 @@ window.exportMessagesCSV = async function() {
                         html += `
                             <div style="padding:16px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">
                                 <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                                    <strong style="color:#0f172a;">${r.name}</strong>
+                                    <strong style="color:#0f172a;">${window.esc(r.name || 'Unknown')}</strong>
                                     <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:50px;font-size:0.75rem;font-weight:700;">${r.type}</span>
                                 </div>
-                                <div style="font-size:0.85rem;color:#64748b;">${r.detail}</div>
+                                <div style="font-size:0.85rem;color:#64748b;">${window.esc(r.detail)}</div>
                             </div>
                         `;
                     });
@@ -2197,15 +2464,16 @@ window.exportMessagesCSV = async function() {
                     el.setAttribute('data-id', doc.id);
                     el.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:12px;cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,0.05);';
                     
-                    const codeHtml = task.caseCode ? `<div style="margin-top:8px;"><code style="background:#f1f5f9;color:#4361ee;padding:2px 6px;border-radius:4px;font-size:0.7rem;">${task.caseCode}</code></div>` : '';
-                    const dateHtml = task.deadline ? `<div style="margin-top:8px;font-size:0.75rem;color:#dc2626;"><i class="fa-regular fa-clock"></i> Due: ${task.deadline}</div>` : '';
+                    const codeHtml = task.caseCode ? `<div style="margin-top:8px;"><code class="kd-code">${window.esc(task.caseCode)}</code></div>` : '';
+                    const overdue = task.deadline && status !== 'done' && new Date(task.deadline + 'T23:59:59') < new Date();
+                    const dateHtml = task.deadline ? `<div style="margin-top:8px;font-size:0.75rem;color:${overdue ? '#dc2626' : '#64748b'};"><i class="fa-regular fa-clock"></i> ${overdue ? 'Overdue' : 'Due'}: ${window.esc(task.deadline)}</div>` : '';
 
                     el.innerHTML = `
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                            <div style="font-weight:600;font-size:0.9rem;color:#1e293b;">${task.title}</div>
-                            <button class="btn-delete-task" style="background:none;border:none;color:#d92d20;cursor:pointer;font-size:0.8rem;padding:0;"><i class="fa-solid fa-trash"></i></button>
+                            <div style="font-weight:600;font-size:0.9rem;color:#1e293b;">${window.esc(task.title)}</div>
+                            <button class="btn-delete-task" aria-label="Delete task" title="Delete task" style="background:none;border:none;color:#d92d20;cursor:pointer;font-size:0.8rem;padding:0;"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">${task.description||''}</div>
+                        <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">${window.esc(task.description || '')}</div>
                         ${codeHtml}
                         ${dateHtml}
                     `;
@@ -2225,33 +2493,44 @@ window.exportMessagesCSV = async function() {
                     else kanbanDone.appendChild(el);
                 });
 
-                // Init SortableJS
-                if (window.Sortable) {
+                // Init SortableJS once; re-creating it on every render saved each drop several times
+                if (window.Sortable && !kanbanTodo._sortable) {
                     const opts = {
                         group: 'kanban',
                         animation: 150,
+                        draggable: '.task-card',
                         onEnd: async function (evt) {
                             const itemEl = evt.item;
                             const taskId = itemEl.getAttribute('data-id');
                             const newStatus = evt.to.getAttribute('data-status');
-                            if (taskId && newStatus) {
-                                await db.collection('tasks').doc(taskId).update({ status: newStatus });
-                                showToast("Task updated.");
+                            if (taskId && newStatus && evt.from !== evt.to) {
+                                try {
+                                    await db.collection('tasks').doc(taskId).update({ status: newStatus });
+                                    showToast("Task moved.");
+                                } catch (e) {
+                                    showToast("Could not move the task. Please try again.", "error");
+                                    renderTasksList();
+                                }
                             }
                         }
                     };
-                    new Sortable(kanbanTodo, opts);
+                    kanbanTodo._sortable = new Sortable(kanbanTodo, opts);
                     new Sortable(kanbanProgress, opts);
                     new Sortable(kanbanDone, opts);
                 }
 
+                [[kanbanTodo, 'No tasks to do.'], [kanbanProgress, 'Nothing in progress.'], [kanbanDone, 'No finished tasks yet.']].forEach(([col, text]) => {
+                    if (!col.children.length) col.innerHTML = `<div class="kd-empty kd-empty-sm">${text}</div>`;
+                });
             } catch(e) {
                 console.error("Task render error", e);
+                kanbanTodo.innerHTML = '<div class="kd-empty is-error">Tasks could not be loaded.</div>';
             }
         }
 
         if (newTaskBtn) {
             newTaskBtn.addEventListener('click', async () => {
+              try {
                 const res = await window.showCustomModal({
                     title: 'Add New Firm Task',
                     icon: 'fa-list-check',
@@ -2289,7 +2568,10 @@ window.exportMessagesCSV = async function() {
                     });
                     showToast("Task created!");
                     renderTasksList();
+                } else if (res) {
+                    showToast("Enter a task title to create a task.", "error");
                 }
+              } catch (e) { if (e) { console.error('Task create error:', e); showToast('Could not create the task. Please try again.', 'error'); } }
             });
         }
 
@@ -2326,40 +2608,44 @@ window.exportMessagesCSV = async function() {
             var invoicesBody = document.getElementById('invoicesTableBody');
             var receiptsBody = document.getElementById('receiptsTableBody');
             if (!invoicesBody || !receiptsBody) return;
-            invoicesBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading invoices...</td></tr>';
-            receiptsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading receipts...</td></tr>';
+            invoicesBody.innerHTML = '<tr><td colspan="5" class="kh-sk-pending" style="padding:40px;">Loading invoices...</td></tr>';
+            receiptsBody.innerHTML = '<tr><td colspan="5" class="kh-sk-pending" style="padding:40px;">Loading receipts...</td></tr>';
+            var esc = window.esc, chip = window.statusChip;
+            var ms = function(v) { return v && v.toMillis ? v.toMillis() : 0; };
             try {
                 var snap = await db.collection('invoices').orderBy('createdAt', 'desc').get();
                 var all  = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
                 if (all.length === 0) {
-                    invoicesBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--admin-text-muted);padding:40px;">No invoices yet. Click Create Invoice to add one.</td></tr>';
+                    invoicesBody.innerHTML = '<tr class="kd-empty-row"><td colspan="5"><div class="kd-empty"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i>No invoices yet. Click "Create Invoice" to add one.</div></td></tr>';
                 } else {
                     invoicesBody.innerHTML = '';
                     all.forEach(function(inv) {
                         var isPaid = inv.status === 'paid';
-                        var badge  = isPaid
-                            ? '<span style="background:rgba(18,183,106,0.1);color:#027a48;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:700;"><i class=\"fa-solid fa-check\"></i> Paid</span>'
-                            : '<span style="background:rgba(247,144,9,0.1);color:#b45309;padding:3px 10px;border-radius:50px;font-size:0.75rem;font-weight:700;"><i class=\"fa-solid fa-clock\"></i> Pending</span>';
                         var date = inv.createdAt ? new Date(inv.createdAt.toDate()).toLocaleDateString('en-RW') : 'N/A';
                         var row  = document.createElement('tr');
+                        row.dataset.status = isPaid ? 'paid' : 'pending';
                         row.innerHTML =
-                            '<td><code style="background:#f1f5f9;padding:3px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;color:#4361ee;">' + (inv.invoiceId || inv.id.slice(0,8).toUpperCase()) + '</code><div style="font-size:0.72rem;color:#98a2b3;margin-top:2px;">' + date + '</div></td>' +
-                            '<td><div style="font-weight:600;color:#0d1b35;">' + (inv.clientName || 'N/A') + '</div><div style="font-size:0.78rem;color:#667085;">' + (inv.caseCode || '') + '</div></td>' +
-                            '<td style="font-weight:700;color:#0d1b35;">RWF ' + Number(inv.amount||0).toLocaleString() + '</td>' +
-                            '<td>' + badge + '</td>' +
-                            '<td style="text-align:right;white-space:nowrap;">' +
-                            (!isPaid ? '<button class="btn-primary mark-paid-btn" data-id="' + inv.id + '" style="padding:5px 12px;font-size:0.78rem;margin-right:6px;"><i class="fa-solid fa-check"></i> Mark Paid</button>' : '') +
-                            '<button class="btn-outline del-invoice-btn" data-id="' + inv.id + '" style="color:#d92d20;border-color:#fda29b;padding:5px 10px;"><i class="fa-solid fa-trash"></i></button>' +
+                            '<td data-sort="' + ms(inv.createdAt) + '"><code class="kd-code">' + esc(inv.invoiceId || inv.id.slice(0,8).toUpperCase()) + '</code><div class="kd-muted" style="margin-top:2px;">' + date + '</div></td>' +
+                            '<td><div style="font-weight:600;color:#0d1b35;">' + esc(inv.clientName || 'N/A') + '</div><div class="kd-muted">' + esc(inv.service || inv.caseCode || '') + '</div></td>' +
+                            '<td data-sort="' + Number(inv.amount || 0) + '" style="font-weight:700;color:#0d1b35;">RWF ' + Number(inv.amount||0).toLocaleString() + '</td>' +
+                            '<td>' + chip(isPaid ? 'paid' : 'pending') + '</td>' +
+                            '<td class="kd-actions-cell">' +
+                            (!isPaid ? '<button class="btn-primary kd-icon-btn mark-paid-btn" data-id="' + inv.id + '"><i class="fa-solid fa-check"></i> Mark paid</button>' : '') +
+                            '<button class="btn-outline kd-icon-btn is-danger del-invoice-btn" data-id="' + inv.id + '" title="Delete invoice" aria-label="Delete invoice"><i class="fa-solid fa-trash"></i></button>' +
                             '</td>';
                         invoicesBody.appendChild(row);
                     });
                     invoicesBody.querySelectorAll('.mark-paid-btn').forEach(function(btn) {
                         btn.addEventListener('click', async function() {
                             try {
+                                await window.showCustomModal({ title: 'Mark invoice as paid?', icon: 'fa-receipt', contentHTML: '<p class="kd-modal-text">A receipt will be available under Receipts.</p>', confirmText: 'Mark paid' });
+                            } catch (e) { return; }
+                            btn.disabled = true;
+                            try {
                                 await db.collection('invoices').doc(btn.getAttribute('data-id')).update({ status: 'paid', paidAt: firebase.firestore.FieldValue.serverTimestamp() });
                                 window.showToast('Invoice marked as paid');
                                 renderBillingTab();
-                            } catch(e) { console.error(e); }
+                            } catch(e) { console.error(e); btn.disabled = false; window.showToast('Could not update the invoice. Please try again.', 'error'); }
                         });
                     });
                     invoicesBody.querySelectorAll('.del-invoice-btn').forEach(function(btn) {
@@ -2375,17 +2661,18 @@ window.exportMessagesCSV = async function() {
                 }
                 var paid = all.filter(function(inv) { return inv.status === 'paid'; });
                 if (paid.length === 0) {
-                    receiptsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--admin-text-muted);padding:40px;">No receipts yet. Mark an invoice as paid to generate a receipt.</td></tr>';
+                    receiptsBody.innerHTML = '<tr class="kd-empty-row"><td colspan="5"><div class="kd-empty"><i class="fa-solid fa-receipt" aria-hidden="true"></i>No receipts yet. Mark an invoice as paid to generate a receipt.</div></td></tr>';
                 } else {
                     receiptsBody.innerHTML = '';
-                    paid.forEach(function(inv, i) {
+                    paid.forEach(function(inv) {
                         var paidDate = inv.paidAt ? new Date(inv.paidAt.toDate()).toLocaleDateString('en-RW') : 'N/A';
                         var row = document.createElement('tr');
+                        row.dataset.status = 'paid';
                         row.innerHTML =
-                            '<td><code style="background:#f0fdf4;padding:3px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;color:#027a48;">RCT-' + String(i+1).padStart(4,'0') + '</code></td>' +
-                            '<td style="font-weight:600;color:#0d1b35;">' + (inv.clientName || 'N/A') + '</td>' +
-                            '<td style="font-weight:700;color:#0d1b35;">RWF ' + Number(inv.amount||0).toLocaleString() + '</td>' +
-                            '<td style="color:#667085;">' + paidDate + '</td>' +
+                            '<td><code class="kd-code">' + esc(receiptNo(inv)) + '</code></td>' +
+                            '<td style="font-weight:600;color:#0d1b35;">' + esc(inv.clientName || 'N/A') + '</td>' +
+                            '<td data-sort="' + Number(inv.amount || 0) + '" style="font-weight:700;color:#0d1b35;">RWF ' + Number(inv.amount||0).toLocaleString() + '</td>' +
+                            '<td data-sort="' + ms(inv.paidAt) + '" style="color:#667085;">' + paidDate + '</td>' +
                             '<td style="text-align:right;"><button class="btn-outline pdf-btn" data-id="' + inv.id + '" style="padding:5px 12px;font-size:0.78rem;"><i class="fa-solid fa-download"></i> PDF</button></td>';
                         receiptsBody.appendChild(row);
                     });
@@ -2398,28 +2685,35 @@ window.exportMessagesCSV = async function() {
                 }
             } catch(e) {
                 console.error('Billing error:', e);
-                invoicesBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#d92d20;padding:40px;">Error loading billing: ' + e.message + '</td></tr>';
+                invoicesBody.innerHTML = receiptsBody.innerHTML = '<tr class="kd-empty-row"><td colspan="5"><div class="kd-empty is-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>Billing could not be loaded. Check your connection and try again.</div></td></tr>';
             }
         }
 
+        // Stable receipt number derived from the invoice it settles
+        function receiptNo(inv) {
+            return 'RCT-' + String(inv.invoiceId || inv.id.slice(0, 8).toUpperCase()).replace(/^INV-/, '');
+        }
+
         function generateReceiptPDF(inv) {
+            var esc = window.esc;
             var paidDate = inv.paidAt ? new Date(inv.paidAt.toDate()).toLocaleDateString('en-RW') : 'N/A';
             var html = '<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#0d1b35;max-width:600px;margin:auto}.logo{font-size:1.5rem;font-weight:900}h1{color:#c5a059}hr{border:1px solid #e2e8f0;margin:20px 0}table{width:100%;border-collapse:collapse}td{padding:10px 0}.lbl{color:#667085}.val{font-weight:700;text-align:right}.tot td{font-size:1.1rem;font-weight:900;border-top:2px solid #0d1b35;padding-top:12px}.stamp{display:inline-block;border:3px solid #027a48;color:#027a48;padding:8px 24px;border-radius:8px;font-weight:900;transform:rotate(-5deg);margin-top:16px;letter-spacing:2px}.foot{margin-top:40px;font-size:0.75rem;color:#98a2b3;border-top:1px solid #f1f5f9;padding-top:12px}</style></head><body>' +
                 '<div class="logo">KALTO LAW</div>' +
                 '<p style="color:#667085;font-size:0.85rem;margin-top:4px">Professional Legal Services &middot; Kigali, Rwanda</p>' +
                 '<h1>OFFICIAL RECEIPT</h1>' +
-                '<p style="color:#667085;font-size:0.85rem">Invoice: <strong>' + (inv.invoiceId||inv.id.slice(0,8).toUpperCase()) + '</strong> &nbsp;|&nbsp; Date: <strong>' + paidDate + '</strong></p>' +
+                '<p style="color:#667085;font-size:0.85rem">Receipt: <strong>' + esc(receiptNo(inv)) + '</strong> &nbsp;|&nbsp; Invoice: <strong>' + esc(inv.invoiceId||inv.id.slice(0,8).toUpperCase()) + '</strong> &nbsp;|&nbsp; Date: <strong>' + paidDate + '</strong></p>' +
                 '<hr><table>' +
-                '<tr><td class="lbl">Client Name</td><td class="val">' + (inv.clientName||'N/A') + '</td></tr>' +
-                (inv.caseCode ? '<tr><td class="lbl">Case Code</td><td class="val">' + inv.caseCode + '</td></tr>' : '') +
-                (inv.service  ? '<tr><td class="lbl">Service</td><td class="val">' + inv.service + '</td></tr>' : '') +
+                '<tr><td class="lbl">Client Name</td><td class="val">' + esc(inv.clientName||'N/A') + '</td></tr>' +
+                (inv.caseCode ? '<tr><td class="lbl">Case Code</td><td class="val">' + esc(inv.caseCode) + '</td></tr>' : '') +
+                (inv.service  ? '<tr><td class="lbl">Service</td><td class="val">' + esc(inv.service) + '</td></tr>' : '') +
                 '<tr><td class="lbl">Date Paid</td><td class="val">' + paidDate + '</td></tr>' +
                 '<tr class="tot"><td>AMOUNT RECEIVED</td><td class="val">RWF ' + Number(inv.amount||0).toLocaleString() + '</td></tr>' +
                 '</table><div class="stamp">PAID</div>' +
-                '<div class="foot">Thank you for trusting Kalto Law. info@kalto.law &middot; +250 790 000 000</div>' +
+                '<div class="foot">Thank you for trusting Kalto Law. info.blaw223@yahoo.com &middot; +250 790 750 000</div>' +
                 '</body></html>';
             var win = window.open('', '_blank', 'width=700,height=900');
             if (win) { win.document.write(html); win.document.close(); win.print(); }
+            else window.showToast('Allow pop-ups for this site to download the receipt.', 'error');
         }
 
         var newInvoiceBtn = document.getElementById('newInvoiceBtn');
@@ -2432,13 +2726,16 @@ window.exportMessagesCSV = async function() {
                         contentHTML: '<div class="form-group mb-md"><label for="invClient">Client Full Name *</label><input type="text" id="invClient" class="form-control" placeholder="e.g. Jane Uwase"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;"><div class="form-group"><label for="invAmount">Amount (RWF) *</label><input type="number" id="invAmount" class="form-control" placeholder="50000"></div><div class="form-group"><label for="invCase">Case Tracking Code</label><input type="text" id="invCase" class="form-control" placeholder="KL-XXXX-XXXX"></div></div><div class="form-group"><label for="invService">Service Description</label><input type="text" id="invService" class="form-control" placeholder="e.g. Legal consultation"></div>',
                         confirmText: 'Create Invoice'
                     });
+                    if (res && !(String(res.invClient || '').trim() && Number(res.invAmount) > 0)) {
+                        return window.showToast('Enter the client name and an amount above 0.', 'error');
+                    }
                     if (res && res.invClient && res.invAmount) {
                         var invoiceId = 'INV-' + Date.now().toString().slice(-6);
                         await db.collection('invoices').add({ invoiceId: invoiceId, clientName: res.invClient, amount: Number(res.invAmount), caseCode: res.invCase || '', service: res.invService || '', status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
                         window.showToast('Invoice ' + invoiceId + ' created!');
                         renderBillingTab();
                     }
-                } catch(e) { /* cancelled */ }
+                } catch(e) { if (e) { console.error('Invoice create error:', e); window.showToast('Could not create the invoice. Please try again.', 'error'); } }
             });
         }
 

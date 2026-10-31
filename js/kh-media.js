@@ -3,12 +3,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Video: load the YouTube player only when the visitor presses play ---
     var video = document.querySelector('.kh-video');
     if (video) {
-        var id = (video.getAttribute('data-video') || '').trim();
         var poster = video.querySelector('.kh-video-poster');
-        if (id && poster) {
-            poster.src = 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg';
+        var initial = (video.getAttribute('data-video') || '').trim();
+        if (initial && poster) {
+            poster.src = 'https://i.ytimg.com/vi/' + encodeURIComponent(initial) + '/hqdefault.jpg';
         }
         video.querySelector('.kh-video-play').addEventListener('click', function () {
+            // Read at click time: the video ID can be set later from the dashboard (js/cms.js)
+            var id = (video.getAttribute('data-video') || '').trim();
             if (!id) {
                 video.classList.add('is-empty');
                 return;
@@ -31,8 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function when(ts) {
         var d = ts && typeof ts.toDate === 'function' ? ts.toDate() : null;
         if (!d) return '';
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-            ' \u00b7 ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function build(post, id) {
@@ -55,13 +56,36 @@ document.addEventListener('DOMContentLoaded', function () {
         a.textContent = post.title || 'Untitled';
         body.appendChild(cat);
         body.appendChild(a);
+        // Date, then views / likes / comments counts (kept up by js/kh-post.js)
+        var meta = document.createElement('span');
+        meta.className = 'kh-post-meta';
         var date = when(post.createdAt);
         if (date) {
-            var meta = document.createElement('span');
-            meta.className = 'kh-post-meta';
-            meta.textContent = date;
-            body.appendChild(meta);
+            var d = document.createElement('span');
+            d.className = 'kh-post-date';
+            d.textContent = date;
+            meta.appendChild(d);
         }
+        [['fa-regular fa-eye', post.views, 'views'],
+         ['fa-regular fa-heart', post.likes, 'likes'],
+         ['fa-regular fa-comment', post.comments, 'comments']].forEach(function (c) {
+            var stat = document.createElement('span');
+            stat.className = 'kh-post-stat';
+            stat.title = (c[1] || 0) + ' ' + c[2];
+            var icon = document.createElement('i');
+            icon.className = c[0];
+            icon.setAttribute('aria-hidden', 'true');
+            var n = document.createElement('span');
+            n.textContent = c[1] || 0;
+            var label = document.createElement('span');
+            label.className = 'kh-sr-only';
+            label.textContent = ' ' + c[2];
+            stat.appendChild(icon);
+            stat.appendChild(n);
+            stat.appendChild(label);
+            meta.appendChild(stat);
+        });
+        body.appendChild(meta);
         li.appendChild(img);
         li.appendChild(body);
         return li;

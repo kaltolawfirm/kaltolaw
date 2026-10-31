@@ -2,8 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Staff accounts only (client portal users are signed in too). Same list as
+    // isAdmin() in firestore.rules and KL_STAFF_EMAILS in admin.html.
     function isAdmin() {
-      return request.auth != null;
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in ['info.blaw223@yahoo.com'];
     }
     
     // Default rule: block all access

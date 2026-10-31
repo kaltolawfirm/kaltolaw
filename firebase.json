@@ -16,7 +16,10 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "functions/**",
+      "tools/**",
+      "**/*firebase-adminsdk*.json"
     ],
     "cleanUrls": true,
     "trailingSlash": false,

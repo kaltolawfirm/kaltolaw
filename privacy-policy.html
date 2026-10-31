@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <script src="js/skeleton.js?v=20261031m"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- SEO: Canonical + Meta -->
@@ -40,7 +41,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/style.css?v=1778353129677">
+    <link rel="stylesheet" href="css/style.css?v=20261031">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- SEO & Analytics -->
@@ -73,141 +74,157 @@
     </script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap">
     <link rel="stylesheet" href="css/site-header.css">
+    <link rel="stylesheet" href="css/kh-page.css?v=33">
     <script src="js/site-header.js" defer></script>
 </head>
 
 <body>
 
     <!-- Navigation -->
-    <div class="kh-bar">
+    <div class="kh-bar kh-bar-plain">
         <header class="kh-header">
             <button class="kh-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="kh-menu">
                 <span></span><span></span><span></span>
             </button>
 
             <a href="index.html" class="kh-logo" aria-label="Kalto Law, home">
-<img src="images/logo-kalto.png?v=1790350702" alt="" width="640" height="335">
+<img src="images/logo-kalto.png?v=1790350702" alt="" width="640" height="335" data-cms="g:b2fe97b">
             </a>
 
             <div class="kh-header-actions">
-                <a href="contact.html" class="kh-pill">Enquiry
+                <a href="contact.html" class="kh-pill" data-cms="g:9aa4024">Enquiry
                     <span class="kh-pill-arrow"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 11 11 3M5 3h6v6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                 </a>
             </div>
 
             <nav id="kh-menu" class="kh-menu" aria-label="Main" hidden>
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="about.html">About us</a></li>
-                    <li><a href="practice-areas.html">Practice areas</a></li>
-                    <li><a href="team.html">Our team</a></li>
-                    <li><a href="case-results.html">Case results</a></li>
-                    <li><a href="track-case.html">Track your case</a></li>
-                    <li><a href="fee-estimator.html">Fee estimator</a></li>
-                    <li><a href="faq.html">FAQ</a></li>
-                    <li><a href="blog.html">Legal insights</a></li>
-                    <li><a href="contact.html">Contact</a></li>
+                <ul data-cms-list="g:b313d1e">
+                    <li><a href="index.html" data-cms-f="f0">Home</a></li>
+                    <li><a href="about.html" data-cms-f="f0">About us</a></li>
+                    <li><a href="practice-areas.html" data-cms-f="f0">Practice areas</a></li>
+                    <li><a href="team.html" data-cms-f="f0">Our team</a></li>
+                    <li><a href="case-results.html" data-cms-f="f0">Case results</a></li>
+                    <li><a href="track-case.html" data-cms-f="f0">Track your case</a></li>
+                    <li><a href="fee-estimator.html" data-cms-f="f0">Fee estimator</a></li>
+                    <li><a href="faq.html" data-cms-f="f0">FAQ</a></li>
+                    <li><a href="blog.html" data-cms-f="f0">Legal insights</a></li>
+                    <li><a href="contact.html" data-cms-f="f0">Contact</a></li>
                 </ul>
-                <div class="kh-menu-phone"><a href="tel:+250790750000"><i class="fa-solid fa-phone"></i>&nbsp; +250 790 750 000</a></div>
+                <div class="kh-menu-phone"><a href="tel:+250790750000" data-cms="g:a986720"><i class="fa-solid fa-phone"></i>&nbsp; +250 790 750 000</a></div>
             </nav>
         </header>
     </div>
 
 
-    <!-- Premium Page Header -->
-    <section class="premium-page-header">
-        <div class="marquee-bg">
-            <div class="marquee-text">KALTO LAW &bull; EXCELLENCE &bull; STRATEGY &bull; INTEGRITY &bull; KALTO LAW
-                &bull; EXCELLENCE &bull; STRATEGY &bull; INTEGRITY &bull;&nbsp;</div>
-            <div class="marquee-text">KALTO LAW &bull; EXCELLENCE &bull; STRATEGY &bull; INTEGRITY &bull; KALTO LAW
-                &bull; EXCELLENCE &bull; STRATEGY &bull; INTEGRITY &bull;&nbsp;</div>
-        </div>
-        <div class="container">
-            <h1 class="reveal-text shimmer-text">Privacy Policy</h1>
-            <div class="header-divider reveal-on-scroll" style="transition-delay: 0.5s;"></div>
-        </div>
-    </section>
+    <main class="ka ka-docpage">
+        <!-- Page header -->
+        <section class="ka-hero">
+            <div class="ka-panel ka-hero-panel ka-hero-plain ka-hero-stacked">
+                <a href="index.html" class="kh-pill kh-pill-back" id="kaBack">
+                    <span class="kh-pill-arrow"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11 11 3 3M9 3H3v6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    Back
+                </a>
+                <h1 class="ka-title" data-cms="p:52be030">Privacy Policy</h1>
+                <p class="ka-lede" data-cms="p:38fb067">How KALTO LAW collects, uses and protects the information you share with us.</p>
+            </div>
+        </section>
 
-    <!-- Content Section -->
-    <section class="section bg-light">
-        <div class="container"
-            style="max-width: 800px; margin: 0 auto; background: var(--color-white); padding: 40px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
-            <h2>1. Information We Collect</h2>
-            <p>We collect information that you provide directly to us, such as when you fill out a contact form, request
-                a consultation, or communicate with us via email. This may include your name, email address, phone
-                number, and any details regarding your legal inquiry.</p>
-            <h2 style="margin-top:20px;">2. How We Use Your Information</h2>
-            <p>The information we collect is used strictly to provide you with legal services, respond to your
-                inquiries, schedule consultations, and improve our website experience. We do not sell or rent your
-                personal information to third parties.</p>
-            <h2 style="margin-top:20px;">3. Data Security</h2>
-            <p>We implement appropriate technical and organizational security measures to protect your personal
-                information against unauthorized access, loss, or alteration. However, please be aware that no method of
-                electronic transmission is 100% secure.</p>
-            <h2 style="margin-top:20px;">4. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us at info.blaw223@yahoo.com.</p>
-        </div>
-    </section>
+        <section class="ka-section ka-doc-body">
+            <nav class="ka-doc-toc" aria-label="On this page">
+                <p class="ka-faq-nav-title" data-cms="p:0b6f754">On this page</p>
+                <ol data-cms-list="p:68e7057">
+                    <li><a href="#information-we-collect" data-cms-f="f0"><span>1</span>Information We Collect</a></li>
+                    <li><a href="#how-we-use-your-information" data-cms-f="f0"><span>2</span>How We Use Your Information</a></li>
+                    <li><a href="#data-security" data-cms-f="f0"><span>3</span>Data Security</a></li>
+                    <li><a href="#contact-us" data-cms-f="f0"><span>4</span>Contact Us</a></li>
+                </ol>
+            </nav>
+            <article class="ka-doc" data-cms-list="p:f0db987">
+                <section class="ka-doc-sec" id="information-we-collect">
+                    <h2 data-cms-f="f0"><span class="ka-doc-n">1</span>Information We Collect</h2>
+                    <p data-cms-f="f1">We collect information that you provide directly to us, such as when you fill out a contact form, request a consultation, or communicate with us via email. This may include your name, email address, phone number, and any details regarding your legal inquiry.</p>
+                </section>
+                <section class="ka-doc-sec" id="how-we-use-your-information">
+                    <h2 data-cms-f="f0"><span class="ka-doc-n">2</span>How We Use Your Information</h2>
+                    <p data-cms-f="f1">The information we collect is used strictly to provide you with legal services, respond to your inquiries, schedule consultations, and improve our website experience. We do not sell or rent your personal information to third parties.</p>
+                </section>
+                <section class="ka-doc-sec" id="data-security">
+                    <h2 data-cms-f="f0"><span class="ka-doc-n">3</span>Data Security</h2>
+                    <p data-cms-f="f1">We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, loss, or alteration. However, please be aware that no method of electronic transmission is 100% secure.</p>
+                </section>
+                <section class="ka-doc-sec" id="contact-us">
+                    <h2 data-cms-f="f0"><span class="ka-doc-n">4</span>Contact Us</h2>
+                    <p data-cms-f="f1">If you have any questions about this Privacy Policy, please contact us at <a href="mailto:info.blaw223@yahoo.com">info.blaw223@yahoo.com</a>.</p>
+                </section>
+                <div class="ka-doc-foot">
+                    <p>Questions about this page? Email <a href="mailto:info.blaw223@yahoo.com">info.blaw223@yahoo.com</a> or call <a href="tel:+250790750000">+250 790 750 000</a>.</p>
+                    <a href="disclaimer.html" class="kh-pill">Read our disclaimer
+                        <span class="kh-pill-arrow"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 11 11 3M5 3h6v6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    </a>
+                </div>
+            </article>
+        </section>
+    </main>
 
     <!-- Footer -->
     <footer class="site-footer kh-footer">
         <div class="kh-footer-inner">
             <div class="kh-footer-grid footer-grid">
                 <div class="kh-footer-brand">
-                    <a href="index.html" class="kh-footer-logo" aria-label="Kalto Law, home"><img src="images/logo-kalto-light.png?v=1790350702" alt="" width="640" height="335">
+                    <a href="index.html" class="kh-footer-logo" aria-label="Kalto Law, home"><img src="images/logo-kalto-light.png?v=1790350702" alt="" width="640" height="335" data-cms="g:90bf37c">
                     </a>
-                    <p>Providing strategic legal excellence with integrity and results.</p>
+                    <p data-cms="g:ad1f1ea">Providing strategic legal excellence with integrity and results.</p>
                     <div class="kh-footer-social">
-                        <a href="https://x.com/Altonist_b" target="_blank" rel="noopener" aria-label="Kalto Law on X"><i class="fa-brands fa-x-twitter"></i></a>
-                        <a href="https://www.linkedin.com/in/altonist-b-67522231a/" target="_blank" rel="noopener" aria-label="Kalto Law on LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                        <a href="https://x.com/Altonist_b" target="_blank" rel="noopener" aria-label="Kalto Law on X" data-cms="g:84e6a09"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="https://www.linkedin.com/in/altonist-b-67522231a/" target="_blank" rel="noopener" aria-label="Kalto Law on LinkedIn" data-cms="g:e6044d1"><i class="fa-brands fa-linkedin-in"></i></a>
                     </div>
                 </div>
                 <nav class="kh-footer-col" aria-label="The firm">
-                    <h2 class="kh-footer-heading">The firm</h2>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="about.html">About us</a></li>
-                        <li><a href="team.html">Our team</a></li>
-                        <li><a href="case-results.html">Case results</a></li>
-                        <li><a href="contact.html">Contact</a></li>
+                    <h2 class="kh-footer-heading" data-cms="g:600cb7c">The firm</h2>
+                    <ul data-cms-list="g:e685fa4">
+                        <li><a href="index.html" data-cms-f="f0">Home</a></li>
+                        <li><a href="about.html" data-cms-f="f0">About us</a></li>
+                        <li><a href="team.html" data-cms-f="f0">Our team</a></li>
+                        <li><a href="case-results.html" data-cms-f="f0">Case results</a></li>
+                        <li><a href="contact.html" data-cms-f="f0">Contact</a></li>
                     </ul>
                 </nav>
                 <nav class="kh-footer-col" aria-label="Resources">
-                    <h2 class="kh-footer-heading">Resources</h2>
-                    <ul>
-                        <li><a href="track-case.html">Track your case</a></li>
-                        <li><a href="fee-estimator.html">Fee estimator</a></li>
-                        <li><a href="faq.html">FAQ</a></li>
-                        <li><a href="legal-templates.html">Legal templates</a></li>
-                        <li><a href="blog.html">Legal insights</a></li>
+                    <h2 class="kh-footer-heading" data-cms="g:57c3571">Resources</h2>
+                    <ul data-cms-list="g:16655c5">
+                        <li><a href="track-case.html" data-cms-f="f0">Track your case</a></li>
+                        <li><a href="fee-estimator.html" data-cms-f="f0">Fee estimator</a></li>
+                        <li><a href="faq.html" data-cms-f="f0">FAQ</a></li>
+                        <li><a href="legal-templates.html" data-cms-f="f0">Legal templates</a></li>
+                        <li><a href="blog.html" data-cms-f="f0">Legal insights</a></li>
                     </ul>
                 </nav>
                 <nav class="kh-footer-col" aria-label="Practice areas">
-                    <h2 class="kh-footer-heading">Practice areas</h2>
-                    <ul>
-                        <li><a href="corporate-law.html">Corporate law</a></li>
-                        <li><a href="company-matters.html">Company matters</a></li>
-                        <li><a href="family-matters.html">Family matters</a></li>
-                        <li><a href="real-estate-planning.html">Real estate planning</a></li>
-                        <li><a href="adr.html">Dispute resolution (ADR)</a></li>
-                        <li><a href="practice-areas.html">All practice areas</a></li>
+                    <h2 class="kh-footer-heading" data-cms="g:eb5b221">Practice areas</h2>
+                    <ul data-cms-list="g:2799eff">
+                        <li><a href="corporate-law.html" data-cms-f="f0">Corporate law</a></li>
+                        <li><a href="company-matters.html" data-cms-f="f0">Company matters</a></li>
+                        <li><a href="family-matters.html" data-cms-f="f0">Family matters</a></li>
+                        <li><a href="real-estate-planning.html" data-cms-f="f0">Real estate planning</a></li>
+                        <li><a href="adr.html" data-cms-f="f0">Dispute resolution (ADR)</a></li>
+                        <li><a href="practice-areas.html" data-cms-f="f0">All practice areas</a></li>
                     </ul>
                 </nav>
                 <div class="kh-footer-col">
-                    <h2 class="kh-footer-heading">Contact</h2>
+                    <h2 class="kh-footer-heading" data-cms="g:2a9ce65">Contact</h2>
                     <ul class="kh-footer-contact">
-                        <li><span class="kh-footer-icon"><i class="fa-solid fa-location-dot"></i></span><span>Huye District,<br>Southern Province, Rwanda</span></li>
-                        <li><span class="kh-footer-icon"><i class="fa-solid fa-phone"></i></span><a href="tel:+250790750000">+250 790 750 000</a></li>
-                        <li><span class="kh-footer-icon"><i class="fa-solid fa-envelope"></i></span><a href="mailto:info.blaw223@yahoo.com">info.blaw223@yahoo.com</a></li>
+                        <li><span class="kh-footer-icon"><i class="fa-solid fa-location-dot"></i></span><span data-cms="g:51bbf2f">Huye District,<br>Southern Province, Rwanda</span></li>
+                        <li><span class="kh-footer-icon"><i class="fa-solid fa-phone"></i></span><a href="tel:+250790750000" data-cms="g:a986720-2">+250 790 750 000</a></li>
+                        <li><span class="kh-footer-icon"><i class="fa-solid fa-envelope"></i></span><a href="mailto:info.blaw223@yahoo.com" data-cms="g:bdac65f">info.blaw223@yahoo.com</a></li>
                     </ul>
                 </div>
             </div>
             <div class="kh-footer-bottom">
-                <p>&copy; 2026 KALTO LAW AND SERVICES LTD. All rights reserved.<span class="kh-footer-sep" aria-hidden="true">|</span>Made by <a href="https://yves-mu.vercel.app/" target="_blank" rel="noopener">YveStack</a></p>
+                <p data-cms="g:4282226">&copy; 2026 KALTO LAW AND SERVICES LTD. All rights reserved.<span class="kh-footer-sep" aria-hidden="true">|</span>Made by <a href="https://yves-mu.vercel.app/" target="_blank" rel="noopener">YveStack</a></p>
                 <p class="kh-footer-legal">
-                    <a href="privacy-policy.html">Privacy policy</a>
-                    <a href="disclaimer.html">Disclaimer</a>
-                    <a href="admin.html" class="kh-footer-staff">Staff</a>
+                    <a href="privacy-policy.html" data-cms="g:739e91a">Privacy policy</a>
+                    <a href="disclaimer.html" data-cms="g:05d017a">Disclaimer</a>
+                    <a href="admin.html" class="kh-footer-staff" data-cms="g:88a683d">Staff</a>
                 </p>
             </div>
         </div>
@@ -225,7 +242,32 @@
     <script src="js/bookings.js?v=1778353129677"></script>
 
     <script src="js/translations.js"></script>
-    <script src="js/main.js?v=1778353129677"></script>
+    <script src="js/main.js?v=20261031c"></script>
+    <script>
+    // "On this page" mirrors the sections (they can be edited in the dashboard)
+    document.addEventListener('cms:applied', function () {
+        var list = document.querySelector('.ka-doc-toc ol');
+        if (!list) return;
+        list.innerHTML = '';
+        document.querySelectorAll('.ka-doc-sec').forEach(function (sec, i) {
+            var h = sec.querySelector('h2');
+            var n = h.querySelector('.ka-doc-n');
+            if (n) n.textContent = i + 1;
+            var title = [].slice.call(h.childNodes).filter(function (c) { return c !== n; }).map(function (c) { return c.textContent; }).join('').trim();
+            sec.id = sec.id || 'section-' + (i + 1);
+            var li = document.createElement('li');
+            li.innerHTML = '<a href="#' + sec.id + '"><span>' + (i + 1) + '</span></a>';
+            li.firstChild.appendChild(document.createTextNode(title));
+            list.appendChild(li);
+        });
+    });
+    // Back goes to the previous page on this site; otherwise the homepage
+    document.getElementById('kaBack').addEventListener('click', function (e) {
+        var ref = document.referrer;
+        if (ref && ref.indexOf(location.origin) === 0 && history.length > 1) { e.preventDefault(); history.back(); }
+    });
+    </script>
+    <script src="js/cms.js?v=1" defer></script>
 </body>
 
 </html>

@@ -2,12 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Staff accounts that may use the admin dashboard. Client portal users are
+    // signed in too, so being signed in is not enough. Keep this list in sync
+    // with KL_STAFF_EMAILS in admin.html (and ADMIN_EMAILS in functions/.env).
     function isAdmin() {
-      return request.auth != null;
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in ['info.blaw223@yahoo.com'];
     }
 
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Website content edited in the dashboard's Website Editor (js/cms.js)
+    match /site_content/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // CMS & Blog Content
@@ -15,9 +26,42 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    match /insights/{document=**} {
+    // Blog posts. Visitors may only bump the engagement counters by one:
+    // views and comments go up, likes go up or down (unlike), never below 0.
+    function counterStep(field, allowDown) {
+      let before = resource.data.get(field, 0);
+      let after = request.resource.data.get(field, 0);
+      return after == before
+        || after == before + 1
+        || (allowDown && after == before - 1 && after >= 0);
+    }
+
+    function isCounterBump() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['views', 'likes', 'comments'])
+        && counterStep('views', false)
+        && counterStep('likes', true)
+        && counterStep('comments', false);
+    }
+
+    match /insights/{postId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isCounterBump();
+
+      // Public comments: name + text only, stamped with the server time.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['name', 'text', 'createdAt'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 80
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if isAdmin();
+      }
     }
 
     // Enquiries & Appointments
@@ -73,14 +117,16 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // Invoices — clients can read their own
+    // Invoices: staff manage them; portal clients read their own. pay.html looks
+    // invoices up and settles them through Cloud Functions (lookupInvoice,
+    // verifyInvoicePayment), which verify the payment with Flutterwave first.
     match /invoices/{document=**} {
       allow create, update, delete: if isAdmin();
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
     }
+    // Written only by verifyInvoicePayment (server), one record per transaction
     match /payment_records/{document=**} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // Client Portal User Profiles
